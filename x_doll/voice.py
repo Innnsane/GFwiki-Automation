@@ -167,7 +167,7 @@ def section(mode, title_list, voice, origin_text, gun_code):
 
             if VOICE_LIST_DOLL[key][1] == count_b + 1:
                 count_b += 1
-                text += f"|分类标题{count_c}={VOICE_LIST_TITLE[count_b]}"
+                text += f"|分类标题{count_c}={VOICE_LIST_TITLE[count_b]}\n\n"
 
             if key == "TITLECALL":
                 text_cn = "少女前线"
@@ -182,9 +182,13 @@ def section(mode, title_list, voice, origin_text, gun_code):
             origin_cn = search_string(origin_text, key, title_list[0], "中文")
             origin_jp = search_string(origin_text, key, title_list[0], "日文")
 
-            if VOICE_LIST_DOLL[key][2]:
-                text_cn = "{{模糊|" + text_cn + "}}"
-                text_jp = "{{模糊|" + text_jp + "}}"
+            if origin_jp[:5] == "{{模糊|" and origin_jp[len(origin_jp) - 2:] == "}}":
+                origin_jp = origin_jp[:len(origin_jp) - 2] + "|}}"
+
+            if text_cn != "" and VOICE_LIST_DOLL[key][2]:
+                text_cn = "{{模糊|" + text_cn + "|}}"
+            if text_jp != "" and VOICE_LIST_DOLL[key][2]:
+                text_jp = "{{模糊|" + text_jp + "|}}"
 
             if (origin_cn and not text_cn) or origin_cn.find("ruby") != -1:
                 text_cn = origin_cn
@@ -216,12 +220,20 @@ def search_string(origin_text, tar, title, language):
     if origin_text.find(title) == -1 or origin_text.find(VOICE_LIST_DOLL[tar][0]) == -1:
         return ""
 
-    origin_text_1 = origin_text[origin_text.find(title) + len(title):]
-    origin_text_2 = origin_text_1[:origin_text_1.find(title)]
+    origin_text_1 = origin_text[origin_text.find(f"|表格标题={title}") + len(f"|表格标题={title}"):]
+    if origin_text_1.find(title) == -1:
+        origin_text_2 = origin_text_1
+    else:
+        origin_text_2 = origin_text_1[:origin_text_1.find(title)]
 
-    obj = re.match('|标题(d+)=' + VOICE_LIST_DOLL[tar][0], origin_text_2)
-    origin_text_3 = origin_text_2[origin_text_2.find(f"|标题{obj.group(1)}={VOICE_LIST_DOLL[tar][0]}"):]
-    origin_text_4 = origin_text_3[origin_text_3.find(f"|{language}{obj.group(1)}=") + len(f"|{language}{obj.group(1)}="):]
+    i = 1
+    while i < 30:
+        if origin_text_2.find(f"|标题{i}={VOICE_LIST_DOLL[tar][0]}") != -1:
+            break
+        i += 1
+
+    origin_text_3 = origin_text_2[origin_text_2.find(f"|标题{i}={VOICE_LIST_DOLL[tar][0]}"):]
+    origin_text_4 = origin_text_3[origin_text_3.find(f"|{language}{i}=") + len(f"|{language}{i}="):]
     out_text = origin_text_4[:origin_text_4.find("\n")]
 
     return out_text
