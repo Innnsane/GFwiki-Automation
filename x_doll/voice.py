@@ -179,8 +179,9 @@ def section(mode, title_list, voice, origin_text, gun_code):
                 text_cn = voice[mode][key]['cn']
                 text_jp = voice[mode][key]['jp']
 
-            origin_cn = search_string(origin_text, key, title_list[0], "中文")
-            origin_jp = search_string(origin_text, key, title_list[0], "日文")
+            origin_cn = search_string(origin_text, key, title_list[0], "中文")["text"]
+            origin_jp = search_string(origin_text, key, title_list[0], "日文")["text"]
+            voice_type = search_string(origin_text, key, title_list[0], "日文")["type"]
 
             if origin_jp[:5] == "{{模糊|" and origin_jp[len(origin_jp) - 2:] == "}}":
                 origin_jp = origin_jp[:len(origin_jp) - 2] + "|}}"
@@ -195,9 +196,8 @@ def section(mode, title_list, voice, origin_text, gun_code):
             if (origin_jp and not text_jp) or origin_jp.find("ruby") != -1:
                 text_jp = origin_jp
 
-            voice_type = ".wav"
-            if origin_text.find(".mp3") != -1:
-                voice_type = ".mp3"
+            if voice_type != ".mp3":
+                voice_type = ".wav"
 
             voice_addition = ""
             if mode == "mod":
@@ -218,7 +218,7 @@ def section(mode, title_list, voice, origin_text, gun_code):
 
 def search_string(origin_text, tar, title, language):
     if origin_text.find(title) == -1 or origin_text.find(VOICE_LIST_DOLL[tar][0]) == -1:
-        return ""
+        return {"text": "", "type": ""}
 
     origin_text_1 = origin_text[origin_text.find(f"|表格标题={title}") + len(f"|表格标题={title}"):]
     if origin_text_1.find(title) == -1:
@@ -234,9 +234,13 @@ def search_string(origin_text, tar, title, language):
 
     origin_text_3 = origin_text_2[origin_text_2.find(f"|标题{i}={VOICE_LIST_DOLL[tar][0]}"):]
     origin_text_4 = origin_text_3[origin_text_3.find(f"|{language}{i}=") + len(f"|{language}{i}="):]
-    out_text = origin_text_4[:origin_text_4.find("\n")]
+    voice_text = origin_text_4[:origin_text_4.find("\n")]
 
-    return out_text
+    origin_text_5 = origin_text_3[origin_text_3.find(f"|语音{i}=") + len(f"|语音{i}="):]
+    voice_type_text = origin_text_5[:origin_text_5.find("\n")]
+    voice_type = voice_type_text[len(voice_type_text) - 4:]
+
+    return {"text": voice_text, "type": voice_type}
 
 
 doll_file()
