@@ -126,10 +126,16 @@ def doll_file():
         for line_jp in voice_jp:
             line_jp_arr = line_jp.split("|")
             if line_jp_arr[0] == gun["code"]:
+                if line_jp_arr[1] not in voice_json["normal"].keys():
+                    voice_json["normal"][line_jp_arr[1]] = {"cn": "", "jp": ""}
                 voice_json["normal"][line_jp_arr[1]]["jp"] = line_jp_arr[2][:-1]
             if hasMod and line_jp_arr[0] == gun["code"] + "Mod":
+                if line_jp_arr[1] not in voice_json["mod"].keys():
+                    voice_json["mod"][line_jp_arr[1]] = {"cn": "", "jp": ""}
                 voice_json["mod"][line_jp_arr[1]]["jp"] = line_jp_arr[2][:-1]
             if hasChiLd and line_jp_arr[0] == gun["code"] + "_0":
+                if line_jp_arr[1] not in voice_json["child"].keys():
+                    voice_json["child"][line_jp_arr[1]] = {"cn": "", "jp": ""}
                 voice_json["child"][line_jp_arr[1]]["jp"] = line_jp_arr[2][:-1]
 
         page = section("normal", ["默认语音", "额外语音"], voice_json, origin_text, gun['code'])
