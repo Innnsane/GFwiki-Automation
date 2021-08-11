@@ -30,7 +30,7 @@ def doll_file():
         array[icon] = ""
         if gun_update:
             icon_1 = skill_icon(gun_update["skill1"], skill_info)
-            icon_2 = skill_icon(gun_update["skill1"], skill_info)
+            icon_2 = skill_icon(gun_update["skill2"], skill_info)
             array[icon_1] = ""
             array[icon_2] = ""
 
