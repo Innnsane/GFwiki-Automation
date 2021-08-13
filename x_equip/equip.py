@@ -20,6 +20,21 @@ def main():
     with open(os.path.join(TEXT_SOURCE, "equip.txt"), "r", encoding="utf-8") as f_equip_text:
         equip_text = f_equip_text.read()
         f_equip_text.close()
+
+    with open(os.path.join(STC_SOURCE, "equip_category_info.json"), "r", encoding="utf-8") as f_equip_category:
+        equip_category_info = ujson.load(f_equip_category)
+        f_equip_category.close()
+    with open(os.path.join(TEXT_SOURCE, "equip_category.txt"), "r", encoding="utf-8") as f_equip_category_text:
+        equip_category_text = f_equip_category_text.read()
+        f_equip_category_text.close()
+
+    with open(os.path.join(STC_SOURCE, "equip_type_info.json"), "r", encoding="utf-8") as f_equip_type:
+        equip_type_info = ujson.load(f_equip_type)
+        f_equip_type.close()
+    with open(os.path.join(TEXT_SOURCE, "equip_type.txt"), "r", encoding="utf-8") as f_equip_type_text:
+        equip_type_text = f_equip_type_text.read()
+        f_equip_type_text.close()
+
     with open(os.path.join(STC_SOURCE, "equip_group_info.json"), "r", encoding="utf-8") as f_equip_group:
         equip_group_info = ujson.load(f_equip_group)
         f_equip_group.close()
@@ -46,8 +61,6 @@ def main():
         skill_text = f_skin_text.read()
         f_skin_text.close()
 
-    EQUIP_TYPE1 = ["", "配件", "弹匣", "人形装备"]
-    EQUIP_TYPE2 = ["", "光学瞄具", "全息瞄具", "红点瞄具", "夜战装备", "穿甲弹", "状态弹", "霰弹", "高速弹", "芯片", "外骨骼", "防弹插板", "特殊", "消音器", "弹链箱", "伪装披风", "特殊", "特殊"]
     EQUIP_ATTR = {"pow": "伤害", "hit": "命中", "dodge": "回避", "speed": "移速", "rate": "射速", "critical_harm_rate": "暴击伤害",
                   "critical_percent": "暴击概率", "armor_piercing": "穿甲", "armor": "护甲", "night_view_percent": "夜视能力", "bullet_number_up": "弹量"}
 
@@ -58,7 +71,7 @@ def main():
         # if int(equip['id']) not in [156, 157, 134, 154, 119, 124, 205, 190, 159, 165, 184, 127, 99, 112, 132, 131, 123, 150, 220]:
         #    continue
 
-        if int(equip['id']) < 247:
+        if int(equip['id']) < 20:
             continue
 
         eq_name_tem = equip_text[equip_text.find(equip["name"]) + len("equip-10000001,"):]
@@ -68,7 +81,6 @@ def main():
         page_name = eq_name
         if equip['id'] in NAME.keys():
             page_name = NAME[equip['id']]
-        origin_text = read_wiki(the_session, url, page_name)
 
         text = "{{装备信息\n"
         eq_intro_tem = equip_text[equip_text.find(equip["equip_introduction"]) + len("equip-30000001,"):]
@@ -78,6 +90,8 @@ def main():
         if not eq_intro:
             continue
 
+        origin_text = read_wiki(the_session, url, page_name)
+
         eid = int(equip['id'])
         if eid < 100:
             eid = "00" + str(eid)
@@ -85,8 +99,22 @@ def main():
             eid = "0" + str(eid)
 
         text += f"|编号={eid}\n|星级={equip['rank']}\n|名称={eq_name}\n|图片={equip['code']}.png\n"
-        text += f"|类型1={EQUIP_TYPE1[int(equip['category'])]}"
-        text += f"|类型2={EQUIP_TYPE2[int(equip['type'])]}\n"
+
+        for category in equip_category_info:
+            if equip['category'] == category["category"]:
+                text += f"|类型1={stc_to_text(equip_category_text, category['name'])}"
+                text += f"|类型1英文={stc_to_text(equip_category_text, category['en_name'])}"
+                text += f"|类型1图标={category['code']}\n"
+
+        for eq_type in equip_type_info:
+            if equip['type'] == eq_type["type"]:
+                text += f"|类型2={stc_to_text(equip_type_text, eq_type['name'])}"
+                text += f"|类型2图标={eq_type['code']}"
+
+                eq_type_des = stc_to_text(equip_type_text, eq_type['des']).replace("</color>", "}}")
+                eq_type_des = eq_type_des.replace("<color=", "{{Color|").replace(">", "|")
+                text += f"|类型2描述={eq_type_des}\n\n"
+
         if equip['fit_guns']:
             text += doll_handle(gun_info, gun_text, equip['fit_guns'])
         text += f"|描述={eq_intro}\n\n"
@@ -195,7 +223,10 @@ def main():
             count_ret_2 += 1
         text += f"\n|属性描述1={attr_des_a} {attr_des_b[1:]}"
 
-        text += f"\n|属性描述2={attr_des[:attr_des.find('$')].replace(' ', '<br>').replace('//n', '<br>')}\n"
+        eq_attr_des_2 = attr_des[:attr_des.find('$')].replace(' ', '<br>').replace('//n', '<br>')
+        if eq_attr_des_2.find("技能") != -1 and eq_attr_des_2.find("<br>技能") == -1:
+            eq_attr_des_2 = eq_attr_des_2.replace("技能", "<br>技能")
+        text += f"\n|属性描述2={eq_attr_des_2}\n"
 
         if page_name != eq_name:
             text += f"|名称替换=1\n"
@@ -207,7 +238,13 @@ def main():
             text += "{{专属装备导航}}"
 
         # print(text)
-        write_wiki(the_session, url, page_name, text)
+        write_wiki(the_session, url, page_name, text, "update")
+
+
+def stc_to_text(text, name):
+    tem = text[text.find(name) + len(name) + 1:]
+    out_text = tem[:tem.find("\n")]
+    return out_text
 
 
 def doll_handle(gun_info, gun_text, strings):

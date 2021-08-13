@@ -24,6 +24,20 @@ def doll_file():
         gun_text = f_gun_text.read()
         f_gun_text.close()
 
+    with open(os.path.join(STC_SOURCE, "equip_category_info.json"), "r", encoding="utf-8") as f_equip_category:
+        equip_category_info = ujson.load(f_equip_category)
+        f_equip_category.close()
+    with open(os.path.join(TEXT_SOURCE, "equip_category.txt"), "r", encoding="utf-8") as f_equip_category_text:
+        equip_category_text = f_equip_category_text.read()
+        f_equip_category_text.close()
+
+    with open(os.path.join(STC_SOURCE, "equip_type_info.json"), "r", encoding="utf-8") as f_equip_type:
+        equip_type_info = ujson.load(f_equip_type)
+        f_equip_type.close()
+    with open(os.path.join(TEXT_SOURCE, "equip_type.txt"), "r", encoding="utf-8") as f_equip_type_text:
+        equip_type_text = f_equip_type_text.read()
+        f_equip_type_text.close()
+
     with open(os.path.join(STC_SOURCE, "skin_info.json"), "r", encoding="utf-8") as f_skin:
         skin_info = ujson.load(f_skin)
         f_skin.close()
@@ -87,8 +101,8 @@ def doll_file():
         if int(gun["id"]) < 0:
             continue
 
-        if int(gun["id"]) != 329:
-            continue
+        # if int(gun["id"]) not in [65, 101, 102, 103, 122]:
+        #     continue
 
         cn_name_tem = gun_text[gun_text.find(gun["name"]) + len("gun-10000001,"):]
         cn_name = cn_name_tem[:cn_name_tem.find("\n")]
@@ -258,9 +272,9 @@ def doll_file():
             page += effect_gun("MOD", gun_update['effect_guntype'], gun_update['effect_grid_effect'])
             page += effect_grid("MOD", gun_update['effect_grid_center'], gun_update['effect_grid_pos'])
 
-        page += "\n" + equip_handle(gun['type_equip1'], 1) + "\n"
-        page += equip_handle(gun['type_equip2'], 2) + "\n"
-        page += equip_handle(gun['type_equip3'], 3) + "\n\n"
+        page += "\n" + equip_handle(gun['type_equip1'], 1, equip_category_info, equip_category_text, equip_type_info, equip_type_text) + "\n"
+        page += equip_handle(gun['type_equip2'], 2, equip_category_info, equip_category_text, equip_type_info, equip_type_text) + "\n"
+        page += equip_handle(gun['type_equip3'], 3, equip_category_info, equip_category_text, equip_type_info, equip_type_text) + "\n\n"
 
         for fetter in fetter_skill_info:
             if fetter['gun'] == gun['id']:
@@ -302,6 +316,12 @@ def doll_file():
 
         write_wiki(the_session, url, cn_name, page, '更新')
         # print(page)
+
+
+def stc_to_text(text, name):
+    tem = text[text.find(name) + len(name) + 1:]
+    out_text = tem[:tem.find("\n")]
+    return out_text
 
 
 def text_handle(text):
@@ -560,16 +580,20 @@ def effect_gun(mode, effectstr, attrstr):
     return text + "\n"
 
 
-def equip_handle(type_equip, num):
-    SLOT_TYPE = ["", "配件", "弹匣", "人形装备"]
-    SLOT_EQUIP = ["", "光学瞄具", "全息瞄具", "红点瞄具", "夜战装备", "穿甲弹", "状态弹", "霰弹", "高速弹", "芯片", "外骨骼", "防弹插板", "特殊", "消音器", "弹链箱", "伪装披风", "特殊", "特殊"]
-    slot_type = SLOT_TYPE[int(type_equip.split(";")[0])]
-    slot_equip = type_equip.split(";")[1].split(",")
-    text = f"|装备槽{num}类型={slot_type}"
+def equip_handle(type_equip, num, equip_category_info, equip_category_text, equip_type_info, equip_type_text):
+    text = ""
+    for category in equip_category_info:
+        if type_equip.split(";")[0] == category["category"]:
+            text = f"|装备槽{num}类型={stc_to_text(equip_category_text, category['name'])}"
+            break
 
     count = 0
+    slot_equip = type_equip.split(";")[1].split(",")
     while count < len(slot_equip):
-        text += f"|装备槽{num}装备{count + 1}={SLOT_EQUIP[int(slot_equip[count])]}"
+        for eq_type in equip_type_info:
+            if slot_equip[count] == eq_type["type"]:
+                text += f"|装备槽{num}装备{count + 1}={stc_to_text(equip_type_text, eq_type['name'])}"
+                break
         count += 1
 
     return text
