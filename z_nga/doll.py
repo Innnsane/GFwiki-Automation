@@ -1,8 +1,10 @@
-import requests
 import ujson
 import math
 import os
 import re
+
+import pandas as pd
+from pandas import ExcelWriter
 
 
 STC_SOURCE = "..\\w_stc_data"
@@ -25,40 +27,15 @@ def doll_file():
     with open(os.path.join(TEXT_SOURCE, "battle_skill_config.txt"), "r", encoding="utf-8") as f_skin_text:
         skill_text = f_skin_text.read()
         f_skin_text.close()
-    with open(os.path.join(STC_SOURCE, "fetter_skill_info.json"), "r", encoding="utf-8") as f_fetter_skill:
-        fetter_skill_info = ujson.load(f_fetter_skill)
-        f_fetter_skill.close()
-    with open(os.path.join(TEXT_SOURCE, "fetter_skill.txt"), "r", encoding="utf-8") as f_fetter_skill_text:
-        fetter_skill_text = f_fetter_skill_text.read()
-        f_fetter_skill_text.close()
-    with open(os.path.join(TEXT_SOURCE, "organization.txt"), "r", encoding="utf-8") as f_org_text:
-        org_text = f_org_text.read()
-        f_org_text.close()
-
-    with open(os.path.join(STC_SOURCE, "gun_obtain_info.json"), "r", encoding="utf-8") as f_gun_obtain:
-        gun_obtain_info = ujson.load(f_gun_obtain)
-        f_gun_obtain.close()
-    with open(os.path.join(TEXT_SOURCE, "gun_obtain.txt"), "r", encoding="utf-8") as f_gun_obtain_text:
-        gun_obtain_text = f_gun_obtain_text.read()
-        f_gun_obtain_text.close()
-
-    with open(os.path.join(LUA_SOURCE, "NewCharacterVoice.txt"), "r", encoding="utf-8") as f_voice_text:
-        voice_text = f_voice_text.read()
-        f_voice_text.close()
-
-    with open(OBTAIN_SOURCE, "r", encoding="utf-8") as f_obtain:
-        skin_obtain_info = ujson.load(f_obtain)
-        f_obtain.close()
 
     gun_type = ["None", "HG", "SMG", "RF", "AR", "MG", "SG"]
-    skin_obtain = {"gem": "钻石", "coin": "采购", "event": "活动", "rmb": "RMB"}
-    AttrSpeed = {"HG": 1.50, "SMG": 1.20, "RF": 0.70, "AR": 1.00, "MG": 0.40, "SG": 0.60};
+    AttrSpeed = {"HG": 1.50, "SMG": 1.20, "RF": 0.70, "AR": 1.00, "MG": 0.40, "SG": 0.60}
 
     out_json = []
     for gun in gun_info:
         if int(gun["id"]) > 1200:
             break
-        if int(gun["id"]) <= 1029:
+        if int(gun["id"]) <= 340:
             continue
 
         this_gun = {}
@@ -67,39 +44,39 @@ def doll_file():
         if cn_name.endswith(" "):
             cn_name = cn_name[:-1]
 
-        this_gun['id'] = gun['id']
-        this_gun['rank'] = gun['rank']
-        this_gun['name'] = cn_name
-        this_gun['type'] = gun_type[int(gun['type'])]
+        this_gun['编号'] = gun['id']
+        this_gun['星级'] = gun['rank']
+        this_gun['名称'] = cn_name
+        this_gun['类型'] = gun_type[int(gun['type'])]
 
-        this_gun['life'] = calculate(100, 'life', gun)
-        this_gun['pow'] = calculate(100, 'pow', gun)
-        this_gun['hit'] = calculate(100, 'hit', gun)
-        this_gun['dodge'] = calculate(100, 'dodge', gun)
-        this_gun['rate'] = calculate(100, 'rate', gun)
-        this_gun['armor_piercing'] = gun['armor_piercing']
-        this_gun['armor'] = calculate(100, 'armor', gun)
-        this_gun['crit'] = gun['crit']
-        this_gun['special'] = gun['special']
-        this_gun['speed'] = int(int(gun['ratio_speed']) / AttrSpeed[this_gun['type']] * 10 / 100)
+        this_gun['生命'] = calculate(100, 'life', gun)
+        this_gun['伤害'] = calculate(100, 'pow', gun)
+        this_gun['命中'] = calculate(100, 'hit', gun)
+        this_gun['回避'] = calculate(100, 'dodge', gun)
+        this_gun['攻速'] = calculate(100, 'rate', gun)
+        this_gun['穿甲'] = gun['armor_piercing']
+        this_gun['护甲'] = calculate(100, 'armor', gun)
+        this_gun['暴击'] = gun['crit']
+        this_gun['弹链'] = gun['special']
+        this_gun['移速'] = int(int(gun['ratio_speed']) / AttrSpeed[this_gun['类型']] * 10 / 100)
 
         effect_gun_json = effect_gun(gun['effect_guntype'], gun['effect_grid_effect'])
-        this_gun['effect_gun_grid'] = effect_grid(gun['effect_grid_center'], gun['effect_grid_pos'])
-        this_gun['effect_gun_tar'] = effect_gun_json['target']
-        this_gun['effect_gun_des'] = effect_gun_json['des']
+        this_gun['影响格'] = effect_grid(gun['effect_grid_center'], gun['effect_grid_pos'])
+        this_gun['影响目标'] = effect_gun_json['target']
+        this_gun['影响效果'] = effect_gun_json['des']
 
         skill_json = skill_description(gun["skill1"], skill_info, skill_text)
-        this_gun['skill_name'] = skill_json['name']
-        this_gun['skill_start'] = skill_json['start']
-        this_gun['skill_cd'] = skill_json['cd']
-        this_gun['skill_des'] = skill_json['des']
+        this_gun['技能名称'] = skill_json['name']
+        this_gun['技能前置'] = skill_json['start']
+        this_gun['技能冷却'] = skill_json['cd']
+        this_gun['技能描述'] = skill_json['des']
 
         out_json.append(this_gun)
 
     print(out_json)
-    with open(".\\doll.json", "w", encoding='utf-8') as f:
-        ujson.dump(out_json, f)
-        f.close()
+    with ExcelWriter(os.path.join(".\\", f"doll.xlsx")) as writer:
+        data = pd.DataFrame.from_dict(out_json)
+        data.to_excel(writer, sheet_name="doll", index=None, columns=out_json[0].keys())
     return
 
 

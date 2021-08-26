@@ -3,6 +3,9 @@ import ujson
 import os
 import re
 
+import pandas as pd
+from pandas import ExcelWriter
+
 
 STC_SOURCE = "..\\w_stc_data"
 TEXT_SOURCE = "..\\w_text_data"
@@ -23,14 +26,26 @@ def main():
         gun_text = f_gun_text.read()
         f_gun_text.close()
 
-    EQUIP_TYPE1 = ["", "配件", "弹匣", "人形装备"]
-    EQUIP_TYPE2 = ["", "光学瞄具", "全息瞄具", "红点瞄具", "夜战装备", "穿甲弹", "状态弹", "霰弹", "高速弹", "芯片", "外骨骼", "防弹插板", "特殊", "消音器", "弹链箱", "伪装披风", "特殊", "特殊"]
+    with open(os.path.join(STC_SOURCE, "equip_category_info.json"), "r", encoding="utf-8") as f_equip_category:
+        equip_category_info = ujson.load(f_equip_category)
+        f_equip_category.close()
+    with open(os.path.join(TEXT_SOURCE, "equip_category.txt"), "r", encoding="utf-8") as f_equip_category_text:
+        equip_category_text = f_equip_category_text.read()
+        f_equip_category_text.close()
+
+    with open(os.path.join(STC_SOURCE, "equip_type_info.json"), "r", encoding="utf-8") as f_equip_type:
+        equip_type_info = ujson.load(f_equip_type)
+        f_equip_type.close()
+    with open(os.path.join(TEXT_SOURCE, "equip_type.txt"), "r", encoding="utf-8") as f_equip_type_text:
+        equip_type_text = f_equip_type_text.read()
+        f_equip_type_text.close()
+
     EQUIP_ATTR = {"pow": "伤害", "hit": "命中", "dodge": "回避", "speed": "移速", "rate": "射速", "critical_harm_rate": "暴击伤害",
                   "critical_percent": "暴击概率", "armor_piercing": "穿甲", "armor": "护甲", "night_view_percent": "夜视能力", "bullet_number_up": "弹量"}
 
     out_json = []
     for equip in equip_info:
-        if int(equip['id']) < 247:
+        if int(equip['id']) <= 248:
             continue
 
         this_equip = {}
@@ -45,22 +60,31 @@ def main():
         if not eq_intro:
             continue
 
-        this_equip['id'] = equip['id']
-        this_equip['star'] = equip['rank']
-        this_equip['name'] = eq_name
-        this_equip['type'] = EQUIP_TYPE1[int(equip['category'])] + "/" + EQUIP_TYPE2[int(equip['type'])]
-        this_equip['doll'] = doll_handle(gun_info, gun_text, equip['fit_guns'])
-        this_equip['max_level'] = eq_intro
+        this_equip['编号'] = equip['id']
+        this_equip['星级'] = equip['rank']
+        this_equip['名称'] = eq_name
+
+
+        for category in equip_category_info:
+            if equip['category'] == category["category"]:
+                this_equip['类型'] = f"{stc_to_text(equip_category_text, category['name'])} / "
+
+        for eq_type in equip_type_info:
+            if equip['type'] == eq_type["type"]:
+                this_equip['类型'] += f"{stc_to_text(equip_type_text, eq_type['name'])}"
+
+        this_equip['适用人形'] = doll_handle(gun_info, gun_text, equip['fit_guns'])
+        this_equip['最大等级'] = eq_intro
 
         if int(equip['max_level']) == 0:
-            this_equip['max_level'] = '0'
+            this_equip['最大等级'] = '0'
         else:
-            this_equip['max_level'] = '10'
+            this_equip['最大等级'] = '10'
 
         if int(equip['skill']) != 0 or int(equip['passive_skill']) != 0:
-            this_equip['skill'] = '○'
+            this_equip['技能效果'] = '○'
         else:
-            this_equip['skill'] = '×'
+            this_equip['技能效果'] = '×'
 
         count = 1
         equip_mul = {}
@@ -96,20 +120,27 @@ def main():
             attr_des_a = attr_des_a.replace(f"<ret_{num_string[count_ret_2]}>", ret_des[count_ret_2])
             count_ret_2 += 1
 
-        this_equip['attr'] = attr_des[:attr_des.find('$')].replace('//n', ' ')
-        this_equip['powerup_mp'] = int(float(equip['powerup_mp']) * 10000 * int(equip['exclusive_rate']))
-        this_equip['powerup_ammo'] = int(float(equip['powerup_ammo']) * 10000 * int(equip['exclusive_rate']))
-        this_equip['powerup_mre'] = int(float(equip['powerup_mre']) * 10000 * int(equip['exclusive_rate']))
-        this_equip['powerup_part'] = int(float(equip['powerup_part']) * 10000 * int(equip['exclusive_rate']))
-        this_equip['des'] = eq_intro
+        this_equip['属性'] = attr_des[:attr_des.find('$')].replace('//n', ' ')
+        this_equip['强化人力'] = int(float(equip['powerup_mp']) * 10000 * int(equip['exclusive_rate']))
+        this_equip['强化弹药'] = int(float(equip['powerup_ammo']) * 10000 * int(equip['exclusive_rate']))
+        this_equip['强化口粮'] = int(float(equip['powerup_mre']) * 10000 * int(equip['exclusive_rate']))
+        this_equip['强化零件'] = int(float(equip['powerup_part']) * 10000 * int(equip['exclusive_rate']))
+        this_equip['描述'] = eq_intro
 
         print(this_equip)
         out_json.append(this_equip)
 
-    with open(".\\equip.json", "w", encoding='utf-8') as f:
-        ujson.dump(out_json, f)
-        f.close()
+    print(out_json)
+    with ExcelWriter(os.path.join(".\\", f"equip.xlsx")) as writer:
+        data = pd.DataFrame.from_dict(out_json)
+        data.to_excel(writer, sheet_name="equip", index=None, columns=out_json[0].keys())
     return
+
+
+def stc_to_text(text, name):
+    tem = text[text.find(name) + len(name) + 1:]
+    out_text = tem[:tem.find("\n")]
+    return out_text
 
 
 def doll_handle(gun_info, gun_text, strings):

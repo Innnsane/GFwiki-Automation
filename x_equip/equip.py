@@ -90,7 +90,10 @@ def main():
         if not eq_intro:
             continue
 
-        origin_text = read_wiki(the_session, url, page_name)
+        try:
+            origin_text = read_wiki(the_session, url, page_name)
+        except:
+            origin_text = ""
 
         eid = int(equip['id'])
         if eid < 100:
