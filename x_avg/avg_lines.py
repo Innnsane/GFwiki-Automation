@@ -44,13 +44,8 @@ def display(sp_arr):
         f.write(nga)
 
 
-def get(episode, chapter):
-    if episode == [""]:
-        episode = []
-    if chapter == [""]:
-        chapter = []
-
-    avg_dict = find_avg_file(episode, chapter)
+def get(scenario, episode, chapter):
+    avg_dict = find_avg_file(scenario, episode, chapter)
 
     env = UnityPy.load(AVG)
 
@@ -60,7 +55,7 @@ def get(episode, chapter):
         if obj.type == "TextAsset":
 
             for avg in avg_dict:
-                if data.name == avg["file"]:
+                if data.name == avg["file"] and avg["path"] in obj.container:
                     lines = str(data.script, encoding="utf-8").split("\r\n")
 
                     for line in lines:
@@ -116,14 +111,15 @@ def main():
     print("-- 台词、出场率统计")
     mode = input("-- 请选择想要执行的模式：【1：全部执行】，【2：直接输入】，【3：选择输入】")
     if mode == "1":
-        get([], [])
+        get([], [], [])
     elif mode == "2":
+        avg_scenario_target = input("-- 请输入想要查询的【scenario】，不同的【scenario】请用【+】分隔，不输入视为全部：\n").split("+")
         avg_episode_target = input("-- 请输入想要查询的【episode】，不同的【episode】请用【+】分隔，不输入视为全部：\n").split("+")
         avg_chapter_target = input("-- 请输入想要查询的【chapter】，不同的【chapter】请用【+】分隔，不输入视为全部：\n").split("+")
-        get(avg_episode_target, avg_chapter_target)
+        get(avg_scenario_target, avg_episode_target, avg_chapter_target)
     elif mode == "3":
         target_dict = show_avg_sort()
-        get(target_dict["episode"], target_dict["chapter"])
+        get(target_dict["scenario"], target_dict["episode"], target_dict["chapter"])
     else:
         print("-- 模式错误")
         main()
