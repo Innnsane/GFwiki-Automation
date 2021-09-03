@@ -44,19 +44,19 @@ def find_avg_file(scenario, episode, chapter):
         avg_dict_select = avg_dict_raw
     elif scenario and not episode:
         for avg in avg_dict_raw:
-            if avg["scenario"] in scenario:
+            if avg["story"] == "1" and avg["scenario"] in scenario:
                 avg_dict_select.append(avg)
     elif scenario and episode and not chapter:
         for avg in avg_dict_raw:
             if not avg["scenario"] or not avg["episode"]:
                 continue
-            if avg["scenario"] in scenario and avg["episode"] in episode:
+            if avg["story"] == "1" and avg["scenario"] in scenario and avg["episode"] in episode:
                 avg_dict_select.append(avg)
     elif scenario and episode and chapter:
         for avg in avg_dict_raw:
             if not avg["scenario"] or not avg["episode"] or not avg["chapter"]:
                 continue
-            if avg["scenario"] in scenario and avg["episode"] in episode and avg["chapter"] in chapter:
+            if avg["story"] == "1" and avg["scenario"] in scenario and avg["episode"] in episode and avg["chapter"] in chapter:
                 avg_dict_select.append(avg)
 
     return avg_dict_select
@@ -67,7 +67,7 @@ def show_avg_sort():
 
     scenario_list = []
     for avg in avg_dict:
-        if avg["scenario"] not in scenario_list:
+        if avg["story"] == "1" and avg["scenario"] not in scenario_list:
             scenario_list.append(avg["scenario"])
     print(f"-- 共 {len(scenario_list)} 种【scenario】，详细清单如下 --------")
     print_avg_list(scenario_list)
@@ -80,7 +80,7 @@ def show_avg_sort():
     episode_list = []
     avg_scenario_sort = []
     for avg in avg_dict:
-        if avg["scenario"] in avg_scenario_target:
+        if avg["story"] == "1" and avg["scenario"] in avg_scenario_target:
             avg_scenario_sort.append(avg)
             if avg["episode"] not in episode_list:
                 episode_list.append(avg["episode"])
@@ -95,7 +95,7 @@ def show_avg_sort():
     chapter_list = []
     avg_episode_sort = []
     for avg in avg_dict:
-        if avg["episode"] in avg_episode_target:
+        if avg["story"] == "1" and avg["episode"] in avg_episode_target:
             avg_episode_sort.append(avg)
             if avg["chapter"] not in chapter_list:
                 chapter_list.append(avg["chapter"])
@@ -106,7 +106,7 @@ def show_avg_sort():
     avg_chapter_target = input("-- 请输入想要查询的【chapter】，不同的【chapter】请用【+】分隔：\n").split("+")
 
     for avg in avg_episode_sort:
-        if avg["chapter"] in avg_chapter_target or avg_chapter_target == [""]:
+        if avg["story"] == "1" and avg["chapter"] in avg_chapter_target or avg_chapter_target == [""]:
             print(avg["episode"], avg["chapter"], avg["name_a"], avg["name"], avg["name_b"], avg["file"])
 
     return {"scenario": avg_scenario_target, "episode": avg_episode_target, "chapter": avg_chapter_target}

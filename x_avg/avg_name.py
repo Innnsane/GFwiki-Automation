@@ -27,7 +27,7 @@ def update_avg():
 
         if not exist:
             avg_add = {"file": avg["file"], "path": avg["path"],
-                       "name_a": "", "name": "", "name_b": "", "sign": "", "scenario": "", "episode": "", "chapter": ""}
+                       "name_a": "", "name": "", "name_b": "", "sign": "", "scenario": "", "episode": "", "chapter": "", "story": ""}
 
             print(avg["file"], avg["path"])
             avg_dict_old.append(avg_add)
@@ -130,7 +130,7 @@ def initialize_with_pattern(info_all):
 
     title_dict = xlsx_to_dict()
     for avg in title_dict:
-        if not info_all and avg["name"]:
+        if avg["name"]:
             continue
 
         if len(avg["path"].split("/")) > 1:

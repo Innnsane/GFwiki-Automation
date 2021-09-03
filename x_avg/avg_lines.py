@@ -6,6 +6,7 @@ from avg import find_avg_file
 from avg import show_avg_sort
 
 XLSX = "./res/line.xlsx"
+LINE_LENGTH = "./res/line_length.xlsx"
 AVG = "./res/asset_textavg.ab"
 NGA = "./res/nga_line.txt"
 
@@ -50,6 +51,7 @@ def get(scenario, episode, chapter):
     env = UnityPy.load(AVG)
 
     speaker_json = {}
+    line_length_together = 0
     for obj in env.objects:
         data = obj.read()
         if obj.type == "TextAsset":
@@ -59,6 +61,16 @@ def get(scenario, episode, chapter):
                     lines = str(data.script, encoding="utf-8").split("\r\n")
 
                     for line in lines:
+                        if line.find(":") == -1 and line.find("：") == -1:
+                            continue
+                        elif line.find(":") == -1:
+                            line_text = line_handle(line.split("：")[-1])
+                        else:
+                            line_text = line_handle(line.split(":")[-1])
+
+                        line_length_together += len(line_text)
+                        line_length = len(line_text)
+
                         if line.find("<Speaker>") == -1 or line.find("</Speaker>") == -1:
                             continue
 
@@ -66,11 +78,6 @@ def get(scenario, episode, chapter):
                             speaker = "旁白"
                         else:
                             speaker = line[line.find("<Speaker>") + len("<Speaker>"):line.find("</Speaker>")]
-
-                        if line.find(":") == -1:
-                            line_length = len(line_handle(line.split("：")[-1]))
-                        else:
-                            line_length = len(line_handle(line.split(":")[-1]))
 
                         if speaker not in speaker_json.keys():
                             speaker_json[speaker] = [1, line_length]
@@ -82,11 +89,36 @@ def get(scenario, episode, chapter):
 
     save(speaker_json)
 
-    lines_length = 0
-    for key in speaker_json.keys():
-        lines_length += int(speaker_json[key][1])
     print(f"-- 执行完成")
-    print(f"-- 【{episode}】-【{chapter}】文本量：{lines_length}")
+    print(f"-- 【{episode}】-【{chapter}】文本量：{line_length_together}")
+
+    return line_length_together
+
+
+def line_length_all():
+    avg_dict = xlsx_to_dict()
+
+    scenario_list = {}
+    for avg in avg_dict:
+        if avg["story"] == "1" and avg["scenario"] != "":
+            if avg["scenario"] not in scenario_list.keys():
+                scenario_list[avg["scenario"]] = []
+            if avg["episode"] != "" and avg["episode"] not in scenario_list[avg["scenario"]]:
+                scenario_list[avg["scenario"]].append(avg["episode"])
+
+    with ExcelWriter(LINE_LENGTH) as writer:
+        for scenario in scenario_list.keys():
+            print(scenario, " - ", scenario_list[scenario])
+
+            length_list = []
+            if scenario_list[scenario]:
+                for episode in scenario_list[scenario]:
+                    length_list.append({"名称": episode, "文本量": get(scenario, episode, [])})
+            else:
+                length_list.append({"名称": scenario, "文本量": get(scenario, [], [])})
+
+            data = pd.DataFrame.from_dict(length_list)
+            data.to_excel(writer, sheet_name=scenario, index=None)
 
 
 def line_handle(text):
@@ -102,14 +134,14 @@ def line_handle(text):
             text_a = 0
         i += 1
 
-    text = text.replace("+", "").replace(" ", "").replace("\n", "")
+    text = text.replace("\n", "").replace("+", "")
 
     return text
 
 
 def main():
     print("-- 台词、出场率统计")
-    mode = input("-- 请选择想要执行的模式：【1：全部执行】，【2：直接输入】，【3：选择输入】")
+    mode = input("-- 请选择想要执行的模式：【1：全部执行】，【2：直接输入】，【3：选择输入】，【4：文本量统计】")
     if mode == "1":
         get([], [], [])
     elif mode == "2":
@@ -120,6 +152,8 @@ def main():
     elif mode == "3":
         target_dict = show_avg_sort()
         get(target_dict["scenario"], target_dict["episode"], target_dict["chapter"])
+    elif mode == "4":
+        line_length_all()
     else:
         print("-- 模式错误")
         main()
