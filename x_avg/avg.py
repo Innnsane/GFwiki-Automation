@@ -5,8 +5,8 @@ AVG = "./asset_textavg.ab"
 NAME = "./name.xlsx"
 
 
-def xlsx_to_dict():
-    title_dict_raw = pd.read_excel(NAME, index_col=None).to_dict('split')
+def xlsx_dict(file_path):
+    title_dict_raw = pd.read_excel(file_path, index_col=None).to_dict('split')
     keys = title_dict_raw['columns']
 
     title_dict = []
@@ -29,6 +29,10 @@ def xlsx_to_dict():
     return title_dict
 
 
+def xlsx_to_dict():
+    return xlsx_dict(NAME)
+
+
 def find_avg_file(scenario, episode, chapter):
     avg_dict_select = []
     avg_dict_raw = xlsx_to_dict()
@@ -41,7 +45,9 @@ def find_avg_file(scenario, episode, chapter):
         chapter = []
 
     if not scenario:
-        avg_dict_select = avg_dict_raw
+        for avg in avg_dict_raw:
+            if avg["story"] == "1":
+                avg_dict_select.append(avg)
     elif scenario and not episode:
         for avg in avg_dict_raw:
             if avg["story"] == "1" and avg["scenario"] in scenario:

@@ -1,14 +1,18 @@
+import os
+import ujson
 import UnityPy
 import pandas as pd
 from pandas import ExcelWriter
+from avg import xlsx_dict
 from avg import xlsx_to_dict
 from avg import find_avg_file
 from avg import show_avg_sort
 
 XLSX = "./res/line.xlsx"
-LINE_LENGTH = "./res/line_length.xlsx"
 AVG = "./res/asset_textavg.ab"
 NGA = "./res/nga_line.txt"
+LINE_LENGTH = "./res/line_length.xlsx"
+AVG_PIC_INFO = "./res/pic_info.xlsx"
 
 
 def save(sp_json):
@@ -121,6 +125,71 @@ def line_length_all():
             data.to_excel(writer, sheet_name=scenario, index=None)
 
 
+def pic_info_get():
+    avg_dict = find_avg_file([], [], [])
+    pic_info_dict = {}
+
+    env = UnityPy.load(AVG)
+    for obj in env.objects:
+        data = obj.read()
+
+        for avg in avg_dict:
+            if data.name == avg["file"] and avg["path"] in obj.container:
+                lines = str(data.script, encoding="utf-8").split("\r\n")
+
+                for line in lines:
+                    if "(" not in line or "||" not in line:
+                        continue
+
+                    pic_part = line.split("||")[0]
+
+                    pic_a = pic_part[:pic_part.find(")")+1]
+                    pic_b = ""
+
+                    if pic_part.find(";") != -1:
+                        pic_part_seg = pic_part[pic_part.find(";")+1:]
+                        pic_b = pic_part_seg[:pic_part_seg.find(")")+1]
+
+                    if "<Speaker>" not in pic_a and pic_a not in pic_info_dict.keys():
+                        pic_info_dict[pic_a] = 1
+                    elif "<Speaker>" not in pic_a:
+                        pic_info_dict[pic_a] += 1
+
+                    if pic_b and "<Speaker>" not in pic_b and pic_b not in pic_info_dict.keys():
+                        pic_info_dict[pic_b] = 1
+                    elif pic_b and "<Speaker>" not in pic_b:
+                        pic_info_dict[pic_b] += 1
+
+                break
+
+    pic_info_show(pic_info_dict)
+
+
+def pic_info_show(pic_info_dict):
+    pic_info_key_list = []
+
+    if os.path.exists(AVG_PIC_INFO):
+        pic_info_list = xlsx_dict(AVG_PIC_INFO)
+
+        for pic_info in pic_info_list:
+            pic_info_key_list.append(pic_info["pic"])
+    else:
+        pic_info_list = []
+
+    for key in pic_info_dict.keys():
+        if key not in pic_info_key_list:
+            print(key, pic_info_dict[key])
+            pic_info_list.append({"pic": key, "num": pic_info_dict[key], "code": ""})
+
+    pic_info_save(pic_info_list)
+
+
+def pic_info_save(pic_info_list):
+    with ExcelWriter(AVG_PIC_INFO) as writer:
+        data = pd.DataFrame.from_dict(pic_info_list)
+        data.to_excel(writer, sheet_name="pic_info", index=None)
+
+
 def line_handle(text):
     i = 0
     text_a = 0
@@ -141,7 +210,7 @@ def line_handle(text):
 
 def main():
     print("-- 台词、出场率统计")
-    mode = input("-- 请选择想要执行的模式：【1：全部执行】，【2：直接输入】，【3：选择输入】，【4：文本量统计】")
+    mode = input("-- 请选择想要执行的模式：\n【1：全部执行】，【2：直接输入】，【3：选择输入】，【4：文本量统计】，【5：立绘信息】")
     if mode == "1":
         get([], [], [])
     elif mode == "2":
@@ -154,10 +223,13 @@ def main():
         get(target_dict["scenario"], target_dict["episode"], target_dict["chapter"])
     elif mode == "4":
         line_length_all()
+    elif mode == "5":
+        pic_info_get()
     else:
         print("-- 模式错误")
         main()
 
 
-main()
+if __name__ == '__main__':
+    main()
 
