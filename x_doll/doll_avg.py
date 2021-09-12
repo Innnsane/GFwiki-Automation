@@ -1,9 +1,14 @@
 import os
+import sys
 import ujson
 import UnityPy
 import pandas as pd
-from wikibot import login_wiki
+
+sys.path.append("..")
+from wikibot import URL
 from wikibot import write_wiki
+from wikibot import xlsx_dict
+from wikibot import login_innbot
 
 STC_SOURCE = "../w_stc_data"
 TEXT_SOURCE = "../w_text_data"
@@ -20,6 +25,7 @@ def update_wiki():
         gun_text = f_gun_text.read()
         f_gun_text.close()
 
+    session = login_innbot()
     code_pic_dict = doll_avg_info()
 
     for gun in gun_info:
@@ -52,7 +58,7 @@ def update_wiki():
 
         page += "}}"
 
-        write_wiki(the_session, url, cn_name+"/整理", page, '更新')
+        write_wiki(session, URL, cn_name+"/整理", page, '更新')
         # print(page)
 
 

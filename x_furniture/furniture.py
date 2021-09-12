@@ -1,14 +1,17 @@
-import requests
-import ujson
 import os
+import sys
+import ujson
+import requests
 
-from wikibot import login_wiki
+sys.path.append("..")
+from wikibot import URL
 from wikibot import read_wiki
 from wikibot import write_wiki
+from wikibot import login_innbot
 
-STC_SOURCE = "..\\w_stc_data"
-TEXT_SOURCE = "..\\w_text_data"
-LUA_SOURCE = "..\\w_lua_data"
+STC_SOURCE = "../w_stc_data"
+TEXT_SOURCE = "../w_text_data"
+LUA_SOURCE = "../w_lua_data"
 
 
 def furniture_write():
@@ -29,10 +32,11 @@ def furniture_write():
     with open(os.path.join(STC_SOURCE, "furniture_interact_point_info.json"), "r", encoding="utf-8") as f_interact:
         interact_info = ujson.load(f_interact)
         f_interact.close()
-    with open(".\\furniture_template.txt", "r", encoding="utf-8") as f_furniture_template:
+    with open("./res/furniture_template.txt", "r", encoding="utf-8") as f_furniture_template:
         furniture_template = f_furniture_template.read()
         f_furniture_template.close()
 
+    session = login_innbot()
     fur_type = {'101': '地面/地板', '102': '地面/地毯', '103': '地面/地毯',
                 '201': '家具/装饰', '202': '家具/沙发', '203': '家具/床', '299': '家具/宠物',
                 '301': '墙面/壁纸', '302': '墙面/挂饰', '303': '墙面/海报'}
@@ -41,14 +45,14 @@ def furniture_write():
         # special 299-宠物, 300-海报, 301-小黑屋, 400-附属房间设施, 500-人形往事, 600-平凡的站牌
         if int(furniture_class['id']) in [300, 400]:
             continue
-        if int(furniture_class['id']) != 31:
+        if int(furniture_class['id']) != 19:
             continue
 
         fur_suit_name_tem = furniture_class_text[furniture_class_text.find(furniture_class["name"]) + len(furniture_class["name"]) + 1:]
         fur_suit_name = fur_suit_name_tem[:fur_suit_name_tem.find("\n")]
 
         try:
-            origin_text = read_wiki(the_session, url, f"家具/{fur_suit_name}")
+            origin_text = read_wiki(session, URL, f"家具/{fur_suit_name}")
         except:
             origin_text = ''
 
@@ -80,8 +84,8 @@ def furniture_write():
 
         page = page.replace("|家具行=", f"|家具行={furniture_single_text}")
 
-        # write_wiki(the_session, url, f"家具/{fur_suit_name}", page, '更新')
-        print(page)
+        write_wiki(session, URL, f"家具/{fur_suit_name}", page, '更新')
+        # print(page)
 
 
 def furniture_single(furniture, furniture_text, fur_type, interact_info):

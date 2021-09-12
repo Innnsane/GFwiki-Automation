@@ -130,5 +130,8 @@ def print_avg_list(avg_list):
     return
 
 
-# print(find_avg_file(["1"], []))
-# show_avg_sort()
+if __name__ == '__main__':
+    print("test")
+    # print(find_avg_file(["1"], []))
+    # show_avg_sort()
+

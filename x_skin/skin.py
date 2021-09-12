@@ -1,16 +1,21 @@
 import os
+import sys
 import ujson
 import requests
 
-from wikibot import login_wiki
+sys.path.append("..")
+from wikibot import URL
 from wikibot import read_wiki
 from wikibot import write_wiki
+from wikibot import xlsx_dict
+from wikibot import login_innbot
+
 from collaboration import COLLABORATION
 
-STC_SOURCE = "..\\w_stc_data"
-TEXT_SOURCE = "..\\w_text_data"
-TEMPLATE_SOURCE = ".\\skin_template.txt"
-OBTAIN = ".\\obtain\\obtain.txt"
+STC_SOURCE = "../w_stc_data"
+TEXT_SOURCE = "../w_text_data"
+TEMPLATE_SOURCE = "./res/skin_template.txt"
+OBTAIN = "./obtain/obtain.xlsx"
 
 
 def text_creation(class_id, time, coll_list, origin_text, theme_type):
@@ -34,11 +39,8 @@ def text_creation(class_id, time, coll_list, origin_text, theme_type):
         live2d_info = ujson.load(f_live2d)
         f_live2d.close()
 
-    with open(OBTAIN, "r", encoding="utf-8") as f_obtain:
-        skin_obtain_info = ujson.load(f_obtain)
-        f_obtain.close()
-
-    skin_obtain = {"gem": "钻石", "coin": "采购", "event": "活动", "rmb": "RMB"}
+    skin_obtain_info = xlsx_dict(OBTAIN)
+    skin_obtain = {"gem": "钻石", "coin": "采购", "event": "活动", "rmb": "RMB", "": ""}
 
     template = template.replace("|编号=", "|编号=" + class_id)
 
@@ -46,7 +48,6 @@ def text_creation(class_id, time, coll_list, origin_text, theme_type):
         template = template.replace("|实装时间=", "|实装时间=" + time)
     else:
         template = template.replace("|实装时间=", search_string(origin_text, '实装时间'))
-
 
     order = 1
     for skin in skin_info:
@@ -119,9 +120,11 @@ def update():
         skin_info = ujson.load(f_skin)
         f_skin.close()
 
+    session = login_innbot()
+
     # 特典
     try:
-        origin_text = read_wiki(the_session, url, '特典装扮')
+        origin_text = read_wiki(session, URL, '特典装扮')
     except:
         origin_text = ""
 
@@ -137,37 +140,38 @@ def update():
         inClass = None
 
     content = text_creation('0', '20160520', special, origin_text, '0')
-    # write_wiki(the_session, url, '特典装扮', content, '更新')
+    # write_wiki(session, URL, '特典装扮', content, '更新')
     # print(content)
 
     for classes in class_info:
         if classes['id'] == '52':
             continue
-        if classes['id'] != '63':
+        if classes['id'] != '62':
             continue
 
         class_name_tem = class_text[class_text.find(classes["name"]) + len(f"{classes['name']}") + 1:]
         class_name = class_name_tem[:class_name_tem.find("\n")]
 
+        # 联动
         if int(classes['id']) == 53:
             for coll in COLLABORATION:
                 try:
-                    origin_text = read_wiki(the_session, url, coll['name'])
+                    origin_text = read_wiki(session, URL, coll['name'])
                 except:
                     origin_text = ""
 
                 content = text_creation('53', coll['time'], coll['skins'], origin_text, classes['theme_type'])
-                # write_wiki(the_session, url, coll['name'], content, '更新')
+                write_wiki(session, URL, coll['name'], content, '更新')
                 # print(content)
         else:
             try:
-                origin_text = read_wiki(the_session, url, class_name)
+                origin_text = read_wiki(session, URL, class_name)
             except:
                 origin_text = ""
 
             content = text_creation(classes['id'], None, [], origin_text, classes['theme_type'])
-            # write_wiki(the_session, url, class_name, content, '更新')
-            print(content)
+            write_wiki(session, URL, class_name, content, '更新')
+            # print(content)
 
 
 def search_string(origin_text, tar):

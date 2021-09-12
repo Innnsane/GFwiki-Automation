@@ -1,16 +1,20 @@
-import requests
-import ujson
 import os
 import re
+import sys
+import ujson
+import requests
 
-from wikibot import login_wiki
+sys.path.append("..")
+from wikibot import URL
 from wikibot import read_wiki
 from wikibot import write_wiki
+from wikibot import login_innbot
+
 from name import NAME
 
-STC_SOURCE = "..\\w_stc_data"
-TEXT_SOURCE = "..\\w_text_data"
-EQUIP_SOURCE = "..\\x_equip"
+STC_SOURCE = "../w_stc_data"
+TEXT_SOURCE = "../w_text_data"
+EQUIP_SOURCE = "../x_equip"
 
 
 def main():
@@ -61,6 +65,8 @@ def main():
         skill_text = f_skin_text.read()
         f_skin_text.close()
 
+    session = login_innbot()
+
     EQUIP_ATTR = {"pow": "伤害", "hit": "命中", "dodge": "回避", "speed": "移速", "rate": "射速", "critical_harm_rate": "暴击伤害",
                   "critical_percent": "暴击概率", "armor_piercing": "穿甲", "armor": "护甲", "night_view_percent": "夜视能力", "bullet_number_up": "弹量"}
 
@@ -68,10 +74,10 @@ def main():
         # if not equip['fit_guns']:
         #    continue
 
-        # if int(equip['id']) not in [156, 157, 134, 154, 119, 124, 205, 190, 159, 165, 184, 127, 99, 112, 132, 131, 123, 150, 220]:
-        #    continue
+        if int(equip['id']) <= 248:
+            continue
 
-        if int(equip['id']) < 20:
+        if int(equip['id']) > 500:
             continue
 
         eq_name_tem = equip_text[equip_text.find(equip["name"]) + len("equip-10000001,"):]
@@ -91,7 +97,7 @@ def main():
             continue
 
         try:
-            origin_text = read_wiki(the_session, url, page_name)
+            origin_text = read_wiki(session, URL, page_name)
         except:
             origin_text = ""
 
@@ -241,7 +247,7 @@ def main():
             text += "{{专属装备导航}}"
 
         # print(text)
-        write_wiki(the_session, url, page_name, text, "update")
+        write_wiki(session, URL, page_name, text, "update")
 
 
 def stc_to_text(text, name):

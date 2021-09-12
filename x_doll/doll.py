@@ -1,19 +1,24 @@
-import requests
-import ujson
-import math
 import os
 import re
+import sys
+import math
+import ujson
+import requests
 
-from wikibot import login_wiki
+sys.path.append("..")
+from wikibot import URL
 from wikibot import read_wiki
 from wikibot import write_wiki
+from wikibot import xlsx_dict
+from wikibot import login_innbot
+
 from design import DESIGN
 from collaboration import COLLABORATION
 
-STC_SOURCE = "..\\w_stc_data"
-TEXT_SOURCE = "..\\w_text_data"
-LUA_SOURCE = "..\\w_lua_data"
-OBTAIN_SOURCE = "..\\x_skin\\obtain\\obtain.txt"
+STC_SOURCE = "../w_stc_data"
+TEXT_SOURCE = "../w_text_data"
+LUA_SOURCE = "../w_lua_data"
+OBTAIN_SOURCE = "../x_skin/obtain/obtain.xlsx"
 
 
 def doll_file():
@@ -87,9 +92,8 @@ def doll_file():
         voice_text = f_voice_text.read()
         f_voice_text.close()
 
-    with open(OBTAIN_SOURCE, "r", encoding="utf-8") as f_obtain:
-        skin_obtain_info = ujson.load(f_obtain)
-        f_obtain.close()
+    session = login_innbot()
+    skin_obtain_info = xlsx_dict(OBTAIN_SOURCE)
 
     gun_type = ["None", "HG", "SMG", "RF", "AR", "MG", "SG"]
     skin_obtain = {"gem": "钻石", "coin": "采购", "event": "活动", "rmb": "RMB"}
@@ -98,10 +102,10 @@ def doll_file():
         if int(gun["id"]) > 1200:
             break
 
-        if int(gun["id"]) < 0:
-            continue
+        # if int(gun["id"]) <= 339:
+        #     continue
 
-        # if int(gun["id"]) not in [65, 101, 102, 103, 122]:
+        # if int(gun["id"]) not in [1032]:
         #     continue
 
         cn_name_tem = gun_text[gun_text.find(gun["name"]) + len("gun-10000001,"):]
@@ -110,7 +114,7 @@ def doll_file():
             cn_name = cn_name[:-1]
 
         try:
-            origin_text = read_wiki(the_session, url, cn_name)
+            origin_text = read_wiki(session, URL, cn_name)
         except:
             origin_text = ''
 
@@ -180,7 +184,7 @@ def doll_file():
         for skin in skin_info:
             if gun["id"] == skin["fit_gun"]:
                 skin_name_tem = skin_text[skin_text.find(skin["name"]) + len("skin-10000001,") + len(cn_name) + 1:]
-                skin_name = skin_name_tem[:skin_name_tem.find("\n")]
+                skin_name = skin_name_tem[:skin_name_tem.find("\n")].replace("//n", "")
                 skin_dialog_tem = skin_text[skin_text.find(skin["dialog"]) + len("skin-20000001,"):]
                 skin_dialog = skin_dialog_tem[:skin_dialog_tem.find("\n")].replace("//n", "<br>").replace("//c", "，")
                 page += f"|装扮{count}名称={skin_name}|装扮{count}编号={skin['id']}"
@@ -314,7 +318,7 @@ def doll_file():
 
         page += "}}"
 
-        write_wiki(the_session, url, cn_name, page, '更新')
+        write_wiki(session, URL, cn_name, page, '更新')
         # print(page)
 
 
@@ -656,7 +660,7 @@ def organization_handle(string, org_text):
         org_b = "无"
     elif len(string) < 5:
         org_a = string
-        org_b = "LEADER"
+        org_b = "负责人"
     else:
         org_a = string[:3]
         org_b = string

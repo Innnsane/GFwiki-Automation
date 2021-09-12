@@ -1,12 +1,15 @@
-import requests
-import ujson
-import math
 import os
 import re
+import sys
+import math
+import ujson
+import requests
 
-from wikibot import login_wiki
+sys.path.append("..")
+from wikibot import URL
 from wikibot import read_wiki
 from wikibot import write_wiki
+from wikibot import login_innbot
 
 STC_SOURCE = "..\\w_stc_data"
 TEXT_SOURCE = "..\\w_text_data"
@@ -31,10 +34,8 @@ def interact_write():
     with open(os.path.join(STC_SOURCE, "furniture_interact_point_info.json"), "r", encoding="utf-8") as f_interact:
         interact_info = ujson.load(f_interact)
         f_interact.close()
-    with open(".\\furniture_template.txt", "r", encoding="utf-8") as f_furniture_template:
-        furniture_template = f_furniture_template.read()
-        f_furniture_template.close()
 
+    session = login_innbot()
     fur_type = {'101': '地面/地板', '102': '地面/地毯', '103': '地面/地毯',
                 '201': '家具/装饰', '202': '家具/沙发', '203': '家具/床', '299': '家具/宠物',
                 '301': '墙面/壁纸', '302': '墙面/挂饰', '303': '墙面/海报'}
@@ -94,8 +95,8 @@ def interact_write():
         this_interact += f"</table>\n"
 
         page += this_interact
-    # write_wiki(the_session, url, f"家具特殊交互", page, '更新')
-    print(page)
+    write_wiki(session, URL, f"家具特殊交互", page, '更新')
+    # print(page)
 
 
 interact_write()
