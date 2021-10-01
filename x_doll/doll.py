@@ -14,6 +14,7 @@ from wikibot import login_innbot
 
 from design import DESIGN
 from collaboration import COLLABORATION
+from doll_skill import skill_description
 
 STC_SOURCE = "../w_stc_data"
 TEXT_SOURCE = "../w_text_data"
@@ -102,8 +103,8 @@ def doll_file():
         if int(gun["id"]) > 1200:
             break
 
-        # if int(gun["id"]) <= 339:
-        #     continue
+        if int(gun["id"]) <= 345:
+            continue
 
         # if int(gun["id"]) not in [1032]:
         #     continue
@@ -318,8 +319,10 @@ def doll_file():
 
         page += "}}"
 
+        print(page)
+        if page == origin_text:
+            continue
         write_wiki(session, URL, cn_name, page, '更新')
-        # print(page)
 
 
 def stc_to_text(text, name):
@@ -329,7 +332,8 @@ def stc_to_text(text, name):
 
 
 def text_handle(text):
-    text = text.replace("|", "{{!}}").replace(":", "：").replace(",", "，").replace(";", "；")
+    text = text.replace("//c", "，").replace("//n", "<br>").replace(" <br>", "<br>").replace("(", "（").replace(")", "）")
+    text = text.replace("\"", "\\\"").replace("|", "{{!}}").replace(":", "：").replace(",", "，").replace(";", "；")
     return text
 
 
@@ -353,193 +357,6 @@ def search_string_enter(origin_text, tar):
         out_text += "|" + obtain_1[:obtain_1.find('\n')] + "\n"
 
     return out_text
-
-
-def skill_description(mode, skill_id, skill_info, skill_text):
-    skill_str = ""
-    skill_des_array = []
-    skill_cd = f""
-    skill_start = f""
-
-    skill_id = str(skill_id) + "01"
-    skill_text_tem = skill_text
-    for skill in skill_info:
-        if int(skill_id) % 100 == 11:
-            break
-        if int(skill["id"]) == int(skill_id):
-            skill_text_tem = skill_text_tem[skill_text_tem.find(skill["name"]) + len("battle_skill_config-110010101,"):]
-            skill_name = skill_text_tem[:skill_text_tem.find("\n")]
-            skill_text_tem = skill_text_tem[skill_text_tem.find(skill["description"]) + len("battle_skill_config-210010101,"):]
-            skill_des = skill_text_tem[:skill_text_tem.find("\n")].replace("//c", "，").replace("//n", "<br>").replace("\"", "\\\"")
-            skill_des = text_handle(skill_des)
-            skill_des = re.sub(r"[ ]{1,10}", " ", skill_des).replace(" <br>", "<br>").replace("(", "（").replace(")", "）")
-            skill_des_array.append(skill_des)
-
-            skill_cd += skill["cd_time"] + ","
-            skill_start += skill["start_cd_time"] + ","
-            if not skill_str:
-                skill_str = f"|{mode}名称={skill_name}\n|{mode}icon={skill['code']}\n"
-            skill_id = int(skill_id) + 1
-
-    skill_str += f"|{mode}冷却={skill_cd[:-1]}\n|{mode}前置={skill_start[:-1]}\n"
-
-    number = 0
-    string = r"[0-9.]{1,15}[%秒倍点发范围弹量]{0,3}"
-    color_string = r"<color=#[0-9a-f]{6}>"
-    num_string = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
-                  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
-                  "twenty-one", "twenty-two", "twenty-three", "twenty-four", "twenty-five", "twenty-six", "twenty-seven",
-                  "twenty-eight", "twenty-nine", "thirty", "thirty-one", "thirty-two", "thirty-three", "thirty-four", "thirty-five",
-                  "thirty-six", "thirty-seven", "thirty-eight", "thirty-nine", "forty", "forty-one", "forty-two", "forty-three", "forty-four", "forty-five",
-                  "forty-six", "forty-seven", "forty-eight", "forty-nine", "fifty", "fifty-one", "fifty-two", "fifty-three", "fifty-four", "fifty-five",
-                  "fifty-six", "fifty-seven", "fifty-eight", "fifty-nine", "sixty", "sixty-one", "sixty-two", "sixty-three", "sixty-four", "sixty-five",
-                  "sixty-six", "sixty-seven", "sixty-eight", "sixty-nine", "seventy", "seventy-one", "seventy-two", "seventy-three", "seventy-four", "seventy-five",
-                  "seventy-six", "seventy-seven", "seventy-eight", "seventy-nine", "eighty", "eighty-one", "eighty-two", "eighty-three", "eighty-four", "eighty-five",
-                  "eighty-six", "eighty-seven", "eighty-eight", "eighty-nine"]
-
-    # 用于技能描述的对比 分别是 lv.1 lv.10
-    ret_sample_origin = re.findall(string, skill_des_array[0])
-    ret_sample_2_origin = re.findall(string, skill_des_array[9])
-    str_sample_origin = skill_des_array[0]
-    str_sample_2_origin = skill_des_array[9]
-
-    while number < len(skill_des_array):
-        ret = re.findall(string, skill_des_array[number])
-        ret_sample = ret_sample_origin
-        ret_sample_2 = ret_sample_2_origin
-        str_sample = str_sample_origin
-        str_sample_2 = str_sample_2_origin
-
-        count = 0
-        while count < len(ret):
-            # skill_des_array[number] 为输出字符串，test_str 为当前处理的字符串，其作用仅为减少代码量，并不会改变最终结果
-            test_str = skill_des_array[number][:skill_des_array[number].find(ret[count])]
-
-            # str_sample 的下一个关键字的位置 小于 test_str 字符串的位置 即 多出一段字符串
-            # - str_sample: <ret_two>但伤害降低50%，持续6秒。
-            # - test_str: <ret_two>，持续6秒。
-            if str_sample.find(ret_sample[count]) < str_sample.find(test_str[test_str.find(f"<ret_{num_string[count - 1]}>")+len(f"<ret_{num_string[count - 1]}>"):].replace("</skill>", "")):
-                # 进行字符串中字符的对比，开始位置为上一个ret，由于这个原因，各 str 在此前必须保持一致
-                count_str = test_str.find(f"<ret_{num_string[count - 1]}>")
-                while count_str < len(str_sample):
-                    if str_sample[count_str] != skill_des_array[number][count_str]:
-                        # 一旦出现相不同字符，记录此处的位置，并寻找下一个相同的字符，此处可能出现bug
-                        # 因为下一个相同的字符之后可能并不相同，尤其是一些常用字符，如 【此时减少弹量8、弹量增加8】 vs 【此时弹量增加8】，继续观察
-                        count_str_2 = count_str
-                        while count_str_2 < len(str_sample):
-                            if str_sample[count_str_2] == skill_des_array[number][count_str]:
-                                # 将 str_sample 中 比 test 多出的字符串删除
-                                str_sample = str_sample[:count_str] + str_sample[count_str_2:]
-                                break
-                            count_str_2 += 1
-                        break
-                    count_str += 1
-                    
-                # 为使程序简便，去掉 count_de ，改为 remove 特定的元素
-                ret_sample = ret_sample[:count] + ret_sample[count + 1:]
-
-            if str_sample_2.find(ret_sample_2[count]) < str_sample_2.find(test_str[test_str.find(f"<ret_{num_string[count - 1]}>")+len(f"<ret_{num_string[count - 1]}>"):].replace("</skill>", "")):
-                count_str = 0
-                while count_str < len(str_sample_2):
-                    if str_sample_2[count_str] != skill_des_array[number][count_str]:
-                        count_str_2 = count_str
-                        while count_str_2 < len(str_sample_2):
-                            if str_sample_2[count_str_2] == skill_des_array[number][count_str]:
-                                str_sample_2 = str_sample_2[:count_str] + str_sample_2[count_str_2:]
-                                break
-                            count_str_2 += 1
-                        break
-                    count_str += 1
-                str_sample_2 = str_sample_2[:count] + str_sample_2[count + 1:]
-
-            # str_sample_2 find test_str 的特定字符串 - fail 缺少下一段字符串，即缺少部分描述
-            # - str_sample_2: <ret_two>，持续6秒。
-            # - test_str: <ret_two>但伤害降低50%，持续6秒。
-            if str_sample_2.find(test_str[test_str.find(f"<ret_{num_string[count - 1]}>")+len(f"<ret_{num_string[count - 1]}>"):].replace("</skill>", "")) == -1:
-                # 进行字符串中字符的对比，开始位置为上一个ret
-                count_str = test_str.find(f"<ret_{num_string[count - 1]}>")
-                while count_str < len(str_sample_2):
-                    if str_sample_2[count_str] != skill_des_array[number][count_str]:
-                        # 一旦出现相不同字符，在该字符之前添加<skill>标识，之后再寻找相同的字符，在该字符之前添加</skill>
-                        skill_des_array[number] = skill_des_array[number][:count_str] + "<skill>" + skill_des_array[number][count_str:]
-                        str_sample = str_sample[:count_str] + "<skill>" + str_sample[count_str:]
-
-                        count_str_2 = count_str
-                        while count_str_2 < len(str_sample_2):
-                            if str_sample_2[count_str] == skill_des_array[number][count_str_2]:
-                                skill_des_array[number] = skill_des_array[number][:count_str_2] + "</skill>" + skill_des_array[number][count_str_2:]
-                                break
-                            count_str_2 += 1
-
-                        # 因为影响了描述的标识，故也需要对 str_sample 的相关字符串添加 skill 标识 才能保持一致，由于排错是根据字符的位置进行的，所以必须执行，方式与 test 同理
-                        count_str_3 = count_str
-                        while count_str_3 < len(str_sample):
-                            if str_sample_2[count_str] == str_sample[count_str_3]:
-                                str_sample = str_sample[:count_str_3] + "</skill>" + str_sample[count_str_3:]
-                                break
-                            count_str_3 += 1
-
-                        # 以上是对 skill_des_array[number] 的操作，即 lv.N skill
-                        # 对 str_sample_2 中缺少的字符进行补全，该操作不影响 str_sample_2_origin ，只作用于该技能等级
-                        str_sample_2 = str_sample_2[:count_str] + skill_des_array[number][count_str:count_str_2] + "</skill>" + str_sample_2[count_str:]
-
-                        # 增加一段描述之后，同样需要对 ret_sample_2 进行 字符匹配 的补充，与 ret 相同
-                        ret_sample_2 = ret_sample_2[:count] + [ret[count]] + ret_sample_2[count:]
-                        break
-                    count_str += 1
-
-            if str_sample.find(test_str[test_str.find(f"<ret_{num_string[count - 1]}>")+len(f"<ret_{num_string[count - 1]}>"):].replace("</skill>", "")) == -1:
-                count_str = test_str.find(f"<ret_{num_string[count - 1]}>")
-                while count_str < len(str_sample):
-                    if str_sample[count_str] != skill_des_array[number][count_str]:
-                        skill_des_array[number] = skill_des_array[number][:count_str] + "<skill>" + skill_des_array[number][count_str:]
-                        str_sample_2 = str_sample_2[:count_str] + "<skill>" + str_sample_2[count_str:]
-
-                        count_str_2 = count_str
-                        while count_str_2 < len(str_sample):
-                            if str_sample[count_str] == skill_des_array[number][count_str_2]:
-                                skill_des_array[number] = skill_des_array[number][:count_str_2] + "</skill>" + skill_des_array[number][count_str_2:]
-                                break
-                            count_str_2 += 1
-
-                        count_str_3 = count_str
-                        while count_str_3 < len(str_sample_2):
-                            if str_sample[count_str] == str_sample_2[count_str_3]:
-                                str_sample_2 = str_sample_2[:count_str_3] + "</skill>" + str_sample_2[count_str_3:]
-                                break
-                            count_str_3 += 1
-
-                        str_sample = str_sample[:count_str] + skill_des_array[number][count_str:count_str_2] + "</skill>" + str_sample[count_str:]
-                        ret_sample = ret_sample[:count] + [ret[count]] + ret_sample[count:]
-                        break
-                    count_str += 1
-
-            if ret[count] != ret_sample_2[count] or ret[count] != ret_sample[count]:
-                str_sample = str_sample.replace(ret_sample[count], f"<skill><ret_{num_string[count]}></skill>", 1)
-                str_sample_2 = str_sample_2.replace(ret_sample_2[count], f"<skill><ret_{num_string[count]}></skill>", 1)
-                skill_des_array[number] = skill_des_array[number].replace(ret[count], f"<skill><ret_{num_string[count]}></skill>", 1)
-            else:
-                str_sample = str_sample.replace(ret_sample[count], f"<ret_{num_string[count]}>", 1)
-                str_sample_2 = str_sample_2.replace(ret_sample_2[count], f"<ret_{num_string[count]}>", 1)
-                skill_des_array[number] = skill_des_array[number].replace(ret[count], f"<ret_{num_string[count]}>", 1)
-            count += 1
-
-        count_2 = 0
-        while count_2 < len(ret):
-            skill_des_array[number] = skill_des_array[number].replace(f"<ret_{num_string[count_2]}>", ret[count_2])
-            count_2 += 1
-
-        number += 1
-
-    number = 0
-    while number < len(skill_des_array):
-        color_ret = re.findall(color_string, skill_des_array[number])
-        for color_num in color_ret:
-            skill_des_array[number] = skill_des_array[number].replace(color_num, "<span style=\\\"color:#" + color_num[len("<color=#"):-1] + "\\\">").replace("</color>", "<\\/span>")
-        skill_str += f"|{mode}描述{number + 1}={skill_des_array[number]}\n"
-        number += 1
-
-    return skill_str
 
 
 def effect_grid(mode, cen, pos):
