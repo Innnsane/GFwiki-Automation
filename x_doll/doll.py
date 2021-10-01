@@ -12,6 +12,7 @@ from wikibot import write_wiki
 from wikibot import xlsx_dict
 from wikibot import login_innbot
 
+from cloud import CLOUD
 from design import DESIGN
 from collaboration import COLLABORATION
 from doll_skill import skill_description
@@ -103,7 +104,7 @@ def doll_file():
         if int(gun["id"]) > 1200:
             break
 
-        if int(gun["id"]) <= 345:
+        if int(gun["id"]) <= 7:
             continue
 
         # if int(gun["id"]) not in [1032]:
@@ -180,6 +181,10 @@ def doll_file():
                 else:
                     from_text = "暂无来源"
                 page += f"|设定来源={from_text}\n|人形设定={design['des']}\n"
+
+        for cloud_doll in CLOUD:
+            if cloud_doll == cn_name:
+                page += f"|云图计划名称={CLOUD[cloud_doll]}\n"
 
         count = 1
         for skin in skin_info:
@@ -319,7 +324,7 @@ def doll_file():
 
         page += "}}"
 
-        print(page)
+        # print(page)
         if page == origin_text:
             continue
         write_wiki(session, URL, cn_name, page, '更新')

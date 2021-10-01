@@ -14,7 +14,7 @@ def test():
         skill_text = f_skin_text.read()
         f_skin_text.close()
 
-    skill_string = skill_description("技能", "106406", skill_info, skill_text)
+    skill_string = skill_description("技能", "801108", skill_info, skill_text)
     print(skill_string)
 
 
@@ -200,9 +200,10 @@ def skill_description(mode, skill_id, skill_info, skill_text):
                         skill_reference_ret.append(skill_list[number]["ret"][count_num_2])
                         count_num_2 += 1
 
-            # if.如果 reference 等于该个体那么应当放到最后处理，及在其他等级已确定效果有提升 elif.如果效果有提升 else.效果没有提升
+            # if.如果 reference 等于该个体那么应当放到最后处理，及在其他等级已确定效果有提升 同时如果因为最后字符串的处理导致溢出那么将跳过
+            # elif.如果效果有提升 else.效果没有提升
             # print(number, count, skill_list[number]["ret"][count], skill_reference_ret[count])
-            if skill_reference["des_initial"] == skill_recognize:
+            if skill_reference["des_initial"] == skill_recognize or count >= len(skill_list[number]["ret"]):
                 count += 1
                 continue
 
