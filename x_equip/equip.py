@@ -10,7 +10,7 @@ from wikibot import read_wiki
 from wikibot import write_wiki
 from wikibot import login_innbot
 
-from name import NAME
+from equip_name import EQUIP_NAME
 
 STC_SOURCE = "../w_stc_data"
 TEXT_SOURCE = "../w_text_data"
@@ -74,7 +74,7 @@ def main():
         # if not equip['fit_guns']:
         #    continue
 
-        if int(equip['id']) <= 248:
+        if int(equip['id']) <= 252:
             continue
 
         if int(equip['id']) > 500:
@@ -85,8 +85,8 @@ def main():
 
         # some equip has different name with page
         page_name = eq_name
-        if equip['id'] in NAME.keys():
-            page_name = NAME[equip['id']]
+        if equip['id'] in EQUIP_NAME.keys():
+            page_name = EQUIP_NAME[equip['id']]
 
         text = "{{装备信息\n"
         eq_intro_tem = equip_text[equip_text.find(equip["equip_introduction"]) + len("equip-30000001,"):]

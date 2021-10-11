@@ -12,8 +12,13 @@ from wikibot import write_wiki
 from wikibot import xlsx_dict
 from wikibot import login_innbot
 
+sys.path.append("../x_equip")
+from equip_name import EQUIP_NAME
+
 from cloud import CLOUD
 from design import DESIGN
+from doll_attr import calculate
+from doll_effect import doll_effect
 from collaboration import COLLABORATION
 from doll_skill import skill_description
 
@@ -104,7 +109,7 @@ def doll_file():
         if int(gun["id"]) > 1200:
             break
 
-        if int(gun["id"]) <= 7:
+        if int(gun["id"]) <= 0:
             continue
 
         # if int(gun["id"]) not in [1032]:
@@ -125,7 +130,7 @@ def doll_file():
                       f"|建造时间={develop_time(gun['develop_duration'])}\n" \
                       f"{gain_handle(gun['obtain_ids'], gun_obtain_info, gun_obtain_text)}\n"
 
-        if int(gun['id']) >= 1000:
+        if 1000 <= int(gun['id']) < 1500:
             page += f"|星级=1"
         else:
             page += f"|星级={gun['rank']}"
@@ -286,6 +291,10 @@ def doll_file():
         page += equip_handle(gun['type_equip2'], 2, equip_category_info, equip_category_text, equip_type_info, equip_type_text) + "\n"
         page += equip_handle(gun['type_equip3'], 3, equip_category_info, equip_category_text, equip_type_info, equip_type_text) + "\n\n"
 
+        page += equip_effect_handle(doll_effect(gun), "") + "\n"
+        if gun_update:
+            page += equip_effect_handle(doll_effect(gun_update), "Mod") + "\n"
+
         for fetter in fetter_skill_info:
             if fetter['gun'] == gun['id']:
                 fetter_skill_tem = fetter_skill_text[fetter_skill_text.find(fetter["name"]) + len("fetter_skill-10000001,"):]
@@ -324,10 +333,11 @@ def doll_file():
 
         page += "}}"
 
-        # print(page)
+        print(page)
+        return
         if page == origin_text:
             continue
-        write_wiki(session, URL, cn_name, page, '更新')
+        # write_wiki(session, URL, cn_name, page, '更新')
 
 
 def stc_to_text(text, name):
@@ -528,45 +538,30 @@ def fetter_dollname_handle(string, gun_info, gun_text):
     return text[:-1]
 
 
-BASIC = [16, 45, 5, 5]
-BASIC_LIFE_ARMOR = [
-    [[55, 0.555], [2, 0.161]],
-    [[96.283, 0.138], [13.979, 0.04]]
-]
-BASE_ATTR = [
-    [0.60, 0.60, 0.80, 1.20, 1.80, 0.00],
-    [1.60, 0.60, 1.20, 0.30, 1.60, 0.00],
-    [0.80, 2.40, 0.50, 1.60, 0.80, 0.00],
-    [1.00, 1.00, 1.00, 1.00, 1.00, 0.00],
-    [1.50, 1.80, 1.60, 0.60, 0.60, 0.00],
-    [2.00, 0.70, 0.40, 0.30, 0.30, 1.00]
-]
-GROW = [
-    [[0.242, 0], [0.181, 0], [0.303, 0], [0.303, 0]],
-    [[0.06, 18.018], [0.022, 15.741], [0.075, 22.572], [0.075, 22.572]]
-]
-TYPE_ENUM = {"HG": 0, "SMG": 1, "RF": 2, "AR": 3, "MG": 4, "SG": 5}
-ATTR_ENUM = {"life": 0, "pow": 1, "rate": 2, "hit": 3, "dodge": 4, "armor": 5}
+def equip_effect_handle(doll_effect_dict, mod):
+    text = ""
 
+    cn_ring = {"": "有", "_noring": "无"}
+    cn_environment = {"day": "昼战", "night": "夜战"}
 
-def calculate(lv, attr_type, gun):
-    mod = 1
-    if lv == 100:
-        mod = 0
+    for environment in cn_environment.keys():
+        text += f"|{mod}{cn_environment[environment]}白值效能={doll_effect_dict['none'][f'effect_{environment}']}" \
+                f"|{mod}{cn_environment[environment]}有环效能={doll_effect_dict[environment][f'effect_{environment}']}" \
+                f"|{mod}{cn_environment[environment]}无环效能={doll_effect_dict[f'{environment}_noring'][f'effect_{environment}_noring']}\n"
 
-    guntype = int(gun['type']) - 1
-    attr = ATTR_ENUM[attr_type]
-    ratio = int(gun['ratio_' + attr_type])
-    growth = int(gun['eat_ratio'])
+    for ring in ["", "_noring"]:
+        for environment in ["day", "night"]:
+            for num in ["1", "2", "3"]:
+                this_equip_id = doll_effect_dict[environment + ring][f'equip{num}_id']
+                if this_equip_id in EQUIP_NAME.keys():
+                    this_equip_name = EQUIP_NAME[this_equip_id]
+                    text += f"|{mod}{cn_environment[environment]}{cn_ring[ring]}环效能装备{num}MW={this_equip_name}"
 
-    if attr == 0 or attr == 5:
-        return math.ceil(
-            (BASIC_LIFE_ARMOR[mod][attr & 1][0] + (lv-1)*BASIC_LIFE_ARMOR[mod][attr & 1][1]) * BASE_ATTR[guntype][attr] * ratio / 100
-        )
-    else:
-        base = BASIC[attr-1] * BASE_ATTR[guntype][attr] * ratio / 100
-        accretion = (GROW[mod][attr-1][1] + (lv-1)*GROW[mod][attr-1][0]) * BASE_ATTR[guntype][attr] * ratio * growth / 100 / 100
-        return math.ceil(base) + math.ceil(accretion)
+                text += f"|{mod}{cn_environment[environment]}{cn_ring[ring]}环效能装备{num}={doll_effect_dict[environment + ring][f'equip{num}']}"
+
+            text += "\n"
+
+    return text
 
 
 doll_file()
