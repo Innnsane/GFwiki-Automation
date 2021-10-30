@@ -45,8 +45,8 @@ def furniture_write():
         # special 299-宠物, 300-海报, 301-小黑屋, 400-附属房间设施, 500-人形往事, 600-平凡的站牌
         if int(furniture_class['id']) in [300, 400]:
             continue
-        if int(furniture_class['id']) != 19:
-            continue
+        # if int(furniture_class['id']) != 67:
+        #    continue
 
         fur_suit_name_tem = furniture_class_text[furniture_class_text.find(furniture_class["name"]) + len(furniture_class["name"]) + 1:]
         fur_suit_name = fur_suit_name_tem[:fur_suit_name_tem.find("\n")]
@@ -68,6 +68,9 @@ def furniture_write():
             page = page.replace(f"|套装特效2=\n", search_string(origin_text, '套装特效2'))
         else:
             page = page.replace(f"|套装特效2=\n", "")
+
+        if origin_text.find("|套装特效缩放大小=") != -1:
+            page = page.replace(f"|套装特效缩放大小=1\n", search_string(origin_text, '套装特效缩放大小'))
 
         des_text_tem = furniture_class_text[furniture_class_text.find(furniture_class["description"]) + len(furniture_class["description"]) + 1:]
         des_text = des_text_tem[:des_text_tem.find("\n")].replace("//n", "<br>").replace("//c", "，")
@@ -129,15 +132,15 @@ def furniture_single(furniture, furniture_text, fur_type, interact_info):
             for interact in interact_info:
                 if interact['id'] == point:
                     interact_point_text += interact['gun_action'] + ', '
-                    if interact['gun_action'] not in ['sit', 'sleep', 'wait', 'pick', 'bird_sit']:
+                    if interact['gun_action'] not in ['sit', 'sleep', 'wait', 'pick', 'bird_sit', 'sleep,sit']:
                         special_point_num += 1
                     break
 
         furniture_single_text += f"|家具特殊交互点个数={special_point_num}\n"
         furniture_single_text += f"|家具交互信息={interact_point_text[:-2]}\n"
 
-    if furniture['furniture_bgm'] != '0':
-        furniture_single_text += f"|家具BGM={furniture['furniture_bgm']}"
+    if furniture['furniture_bgm'] not in ['', '0']:
+        furniture_single_text += f"|家具BGM={furniture['furniture_bgm']}\n"
 
     furniture_single_text += f"|家具描述={fur_des}" + "}}\n"
     return furniture_single_text
