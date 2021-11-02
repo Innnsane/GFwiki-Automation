@@ -1,6 +1,7 @@
 import os
 import sys
 import ujson
+import UnityPy
 
 sys.path.append("..")
 from wikibot import URL
@@ -11,7 +12,13 @@ from wikibot import login_innbot
 STC_SOURCE = "../w_stc_data"
 TEXT_SOURCE = "../w_text_data"
 LUA_SOURCE = "../w_lua_data"
-VOICE_JP = "./voice/NewCharacterVoice.txt"
+DESTINATION = "./voice"
+VOICE_CH = "./voice/ch/NewCharacterVoice.json"
+VOICE_JP = "./voice/jp/NewCharacterVoice.json"
+VOICE_EN = "./voice/en/NewCharacterVoice.json"
+VOICE_KR = "./voice/kr/NewCharacterVoice.json"
+LANG = ["ch", "jp", "en", "kr"]
+lang_cn = {"ch": "中文", "jp": "日文", "en": "英文", "kr": "韩文"}
 
 VOICE_LIST_TITLE = {
     1: "交互语音",
@@ -78,24 +85,17 @@ def doll_file():
         gun_text = f_gun_text.read()
         f_gun_text.close()
 
-    with open(os.path.join(LUA_SOURCE, "NewCharacterVoice.txt"), "r", encoding="utf-8") as f_voice_text:
-        voice = f_voice_text.readlines()
-        f_voice_text.close()
-    with open(os.path.join(LUA_SOURCE, "NewCharacterVoice.txt"), "r", encoding="utf-8") as f_voice_text_2:
-        voice_all = f_voice_text_2.read()
-        f_voice_text_2.close()
-    with open(VOICE_JP, "r", encoding="utf-8") as f_voice_text_jp:
-        voice_jp = f_voice_text_jp.readlines()
-        f_voice_text_jp.close()
+    voice_dict = {}
+    for lang in LANG:
+        with open(os.path.join("./voice", lang, "NewCharacterVoice.json"), "r", encoding="utf-8") as f:
+            voice_dict[lang] = ujson.load(f)
+            f.close()
 
     session = login_innbot()
 
     for gun in gun_info:
         if int(gun["id"]) > 500:
             break
-
-        if int(gun["id"]) < 0:
-            continue
 
         cn_name_tem = gun_text[gun_text.find(gun["name"]) + len("gun-10000001,"):]
         cn_name = cn_name_tem[:cn_name_tem.find("\n")]
@@ -107,45 +107,28 @@ def doll_file():
         except:
             origin_text = ''
 
-        hasMod = None
-        hasChiLd = None
-        if voice_all.find("\n" + name_mod(gun['code']) + "Mod|") != -1:
-            hasMod = True
-        if voice_all.find("\n" + gun["code"] + "_0|") != -1:
-            hasChiLd = True
-
         voice_json = {"normal": {}, "mod": {}, "child": {}}
-        for line in voice:
-            line_arr = line.split("|")
-            if line_arr[0] == gun["code"]:
-                voice_json["normal"][line_arr[1]] = {"cn": "", "jp": ""}
-                voice_json["normal"][line_arr[1]]["cn"] = line_arr[2][:-1]
-            if hasMod and line_arr[0] == name_mod(gun['code']) + "Mod":
-                voice_json["mod"][line_arr[1]] = {"cn": "", "jp": ""}
-                voice_json["mod"][line_arr[1]]["cn"] = line_arr[2][:-1]
-            if hasChiLd and line_arr[0] == gun["code"] + "_0":
-                voice_json["child"][line_arr[1]] = {"cn": "", "jp": ""}
-                voice_json["child"][line_arr[1]]["cn"] = line_arr[2][:-1]
+        for lang in LANG:
+            voice_json["normal"][lang] = {}
+            voice_json["mod"][lang] = {}
+            voice_json["child"][lang] = {}
 
-        for line_jp in voice_jp:
-            line_jp_arr = line_jp.split("|")
-            if line_jp_arr[0] == gun["code"]:
-                if line_jp_arr[1] not in voice_json["normal"].keys():
-                    voice_json["normal"][line_jp_arr[1]] = {"cn": "", "jp": ""}
-                voice_json["normal"][line_jp_arr[1]]["jp"] = line_jp_arr[2][:-1]
-            if hasMod and line_jp_arr[0] == name_mod(gun['code']) + "Mod":
-                if line_jp_arr[1] not in voice_json["mod"].keys():
-                    voice_json["mod"][line_jp_arr[1]] = {"cn": "", "jp": ""}
-                voice_json["mod"][line_jp_arr[1]]["jp"] = line_jp_arr[2][:-1]
-            if hasChiLd and line_jp_arr[0] == gun["code"] + "_0":
-                if line_jp_arr[1] not in voice_json["child"].keys():
-                    voice_json["child"][line_jp_arr[1]] = {"cn": "", "jp": ""}
-                voice_json["child"][line_jp_arr[1]]["jp"] = line_jp_arr[2][:-1]
+            for voice_gun in voice_dict[lang].keys():
+                if voice_gun == gun["code"]:
+                    for voice_type in voice_dict[lang][voice_gun].keys():
+                        voice_json["normal"][lang][voice_type] = voice_dict[lang][voice_gun][voice_type]
+                if voice_gun == f"{gun['code']}Mod":
+                    for voice_type in voice_dict[lang][voice_gun].keys():
+                        voice_json["mod"][lang][voice_type] = voice_dict[lang][voice_gun][voice_type]
+                if voice_gun == f"{gun['code']}_0":
+                    for voice_type in voice_dict[lang][voice_gun].keys():
+                        voice_json["child"][lang][voice_type] = voice_dict[lang][voice_gun][voice_type]
 
-        page = section("normal", ["默认语音", "额外语音"], voice_json, origin_text, gun['code'])
-        if hasMod:
+        page = "<noinclude>__NOTOC__{{#Widget:VoiceTableSwitch}}\n</noinclude>"
+        page += section("normal", ["默认语音", "额外语音"], voice_json, origin_text, gun['code'])
+        if voice_json["mod"]["ch"].keys():
             page += section("mod", ["心智升级默认语音", "心智升级额外语音"], voice_json, origin_text, name_mod(gun['code']))
-        if hasChiLd:
+        if voice_json["child"]["ch"].keys():
             page += section("child", ["儿童节版默认语音", "儿童节版额外语音"], voice_json, origin_text, gun['code'])
 
         # purge_wiki(session, URL, cn_name + "/语音")
@@ -159,7 +142,6 @@ def section(mode, title_list, voice, origin_text, gun_code):
     template_part2 = "==\n</noinclude>{{#invoke:VoiceTable|table|表格标题="
     template_part3 = "\n<noinclude>|可播放=1</noinclude>\n"
     template_part4 = "}}\n"
-
 
     count_a = 0
     count_b = 0
@@ -179,33 +161,26 @@ def section(mode, title_list, voice, origin_text, gun_code):
                 count_b += 1
                 text += f"|分类标题{count_c}={VOICE_LIST_TITLE[count_b]}\n\n"
 
-            if key == "TITLECALL":
-                text_cn = "少女前线"
-                text_jp = "ショウジョゼンセン"
-            elif key not in voice[mode].keys():
-                text_cn = ""
-                text_jp = ""
-            else:
-                text_cn = voice[mode][key]['cn']
-                text_jp = voice[mode][key]['jp']
+            text_dict = {}
+            for lang in LANG:
+                if key == "TITLECALL":
+                    text_dict[lang] = ""
+                elif key.lower() not in voice[mode][lang].keys():
+                    text_dict[lang] = ""
+                else:
+                    text_dict[lang] = "<br>".join(voice[mode][lang][key.lower()])
 
-            origin_cn = search_string(origin_text, key, title_list[0], "中文")["text"]
-            origin_jp = search_string(origin_text, key, title_list[0], "日文")["text"]
+            origin_dict = {}
+            for lang in LANG:
+                origin_dict[lang] = search_string(origin_text, key, title_list[0], lang_cn[lang])["text"]
+
+            for lang in LANG:
+                if text_dict[lang] != "" and VOICE_LIST_DOLL[key][2]:
+                    text_dict[lang] = "{{模糊|" + text_dict[lang] + "|}}"
+                if (origin_dict[lang] and not text_dict[lang]) or origin_dict[lang].find("ruby") != -1:
+                    text_dict[lang] = origin_dict[lang]
+
             voice_type = search_string(origin_text, key, title_list[0], "日文")["type"]
-
-            if origin_jp[:5] == "{{模糊|" and origin_jp[len(origin_jp) - 2:] == "}}":
-                origin_jp = origin_jp[:len(origin_jp) - 2] + "|}}"
-
-            if text_cn != "" and VOICE_LIST_DOLL[key][2]:
-                text_cn = "{{模糊|" + text_cn + "|}}"
-            if text_jp != "" and VOICE_LIST_DOLL[key][2]:
-                text_jp = "{{模糊|" + text_jp + "|}}"
-
-            if (origin_cn and not text_cn) or origin_cn.find("ruby") != -1:
-                text_cn = origin_cn
-            if (origin_jp and not text_jp) or origin_jp.find("ruby") != -1:
-                text_jp = origin_jp
-
             if voice_type != ".mp3":
                 voice_type = ".wav"
 
@@ -216,8 +191,8 @@ def section(mode, title_list, voice, origin_text, gun_code):
                 voice_addition = "_0"
 
             text += f"|标题{count_c}={VOICE_LIST_DOLL[key][0]}\n"
-            text += f"|日文{count_c}={text_jp.replace('<>', '<br>')}\n"
-            text += f"|中文{count_c}={text_cn.replace('<>', '<br>')}\n"
+            for lang in LANG:
+                text += f"|{lang_cn[lang]}{count_c}={text_dict[lang]}\n"
             text += f"|语音{count_c}={gun_code}{voice_addition}_{key}_JP{voice_type}\n\n"
             count_c += 1
 
@@ -243,6 +218,11 @@ def search_string(origin_text, tar, title, language):
         i += 1
 
     origin_text_3 = origin_text_2[origin_text_2.find(f"|标题{i}={VOICE_LIST_DOLL[tar][0]}"):]
+
+    # 当前无对应语言的文本记录
+    if origin_text_3.find(f"|{language}{i}=") == -1:
+        return {"text": "", "type": ""}
+
     origin_text_4 = origin_text_3[origin_text_3.find(f"|{language}{i}=") + len(f"|{language}{i}="):]
     voice_text = origin_text_4[:origin_text_4.find("\n")]
 
@@ -260,4 +240,46 @@ def name_mod(code):
         return code
 
 
-doll_file()
+def stc_to_text(text, name):
+    tem = text[text.find(name) + len(name) + 1:]
+    out_text = tem[:tem.find("\n")]
+    return out_text
+
+
+def unpack_voice_text():
+    for file_name in os.listdir(DESTINATION):
+        if not os.path.exists(os.path.join(DESTINATION, file_name, "asset_textes.ab")):
+            continue
+
+        file_path = os.path.join(DESTINATION, file_name, "asset_textes.ab")
+        env = UnityPy.load(file_path)
+
+        for obj in env.objects:
+            data = obj.read()
+
+            if str(obj.type) != "TextAsset":
+                continue
+            if str(data.name) != "NewCharacterVoice":
+                continue
+
+            data_json = {}
+            data_line = data.text.split("\r\n")
+            for line in data_line:
+                if not line:
+                    continue
+
+                line_code = line.split("|")[0]
+                line_type = line.split("|")[1]
+                line_text = line.split("|")[2]
+
+                if line_code not in data_json.keys():
+                    data_json[line_code] = {}
+                data_json[line_code][line_type] = line_text.replace("＜＞", "<>").split("<>")
+
+            with open(os.path.join(DESTINATION, file_name, f"NewCharacterVoice.json"), "w", encoding='utf-8') as f:
+                ujson.dump(data_json, f, ensure_ascii=False)
+
+
+if __name__ == '__main__':
+    unpack_voice_text()
+    # doll_file()

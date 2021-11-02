@@ -41,6 +41,7 @@ def text_creation(class_id, time, coll_list, origin_text, theme_type):
 
     skin_obtain_info = xlsx_dict(OBTAIN)
     skin_obtain = {"gem": "钻石", "coin": "采购", "event": "活动", "rmb": "RMB", "": ""}
+    gun_type = ["None", "HG", "SMG", "RF", "AR", "MG", "SG"]
 
     template = template.replace("|编号=", "|编号=" + class_id)
 
@@ -60,22 +61,31 @@ def text_creation(class_id, time, coll_list, origin_text, theme_type):
         template = template.replace(f"|人形编号{order}=", f"|人形编号{order}={skin['fit_gun']}")
 
         cn_name = ""
+        illustrator_cv_gun = ""
         for gun in gun_info:
             if gun["id"] == skin["fit_gun"]:
-                cn_name_tem = gun_text[gun_text.find(gun["name"]) + len("gun-10000001,"):]
-                cn_name = cn_name_tem[:cn_name_tem.find("\n")]
-                if cn_name.endswith(" "):
-                    cn_name = cn_name[:-1]
+                cn_name = stc_to_text(gun_text, gun["name"])
+                cn_name = cn_name[:-1] if cn_name.endswith(" ") else cn_name
                 template = template.replace(f"|人形{order}=", f"|人形{order}={cn_name}")
                 template = template.replace(f"|英文{order}=", f"|英文{order}={gun['code']}")
+                illustrator_cv_gun = stc_to_text(gun_text, gun["extra"])
 
-        skin_name_tem = skin_text[skin_text.find(skin["name"]) + len("skin-10000001,") + len(cn_name) + 1:]
-        skin_name = skin_name_tem[:skin_name_tem.find("\n")]
+                star = 1 if 1000 <= int(gun['id']) < 1500 else gun['rank']
+                kind = gun_type[int(gun['type'])]
+                template = template.replace(f"|人形代码{order}=", f"|人形代码{order}=" + "{{" + f"Name/middle|{cn_name}|{kind}|{star}" + "}}")
+
+
+        skin_name = stc_to_text(skin_text, skin["name"])[len(cn_name)+1:].replace("//n", "").replace("\"", "\\\"")
         template = template.replace(f"|名称{order}=", f"|名称{order}={skin_name}")
 
-        skin_line_tem = skin_text[skin_text.find(skin["dialog"]) + len("skin-30000001,"):]
-        skin_line = skin_line_tem[:skin_line_tem.find("\n")]
+        skin_line = stc_to_text(skin_text, skin["dialog"]).replace("//n", "<br>").replace("//c", ",").replace("\"", "\\\"")
         template = template.replace(f"|台词{order}=", f"|台词{order}={skin_line}")
+
+        illustrator_cv_skin = stc_to_text(skin_text, skin["illustrator_cv"])
+        illustrator = illustrator_cv_skin.split('//c')[0] if illustrator_cv_skin else illustrator_cv_gun.split('//c')[0]
+        cv = illustrator_cv_skin.split('//c')[1] if illustrator_cv_skin else illustrator_cv_gun.split('//c')[1]
+        template = template.replace(f"|画师{order}=", f"|画师{order}={illustrator}")
+        template = template.replace(f"|声优{order}=", f"|声优{order}={cv}")
 
         live2d_sign = None
         for live2D in live2d_info:
@@ -88,7 +98,7 @@ def text_creation(class_id, time, coll_list, origin_text, theme_type):
                     template = template.replace(f"|动态{order}=", f"|动态{order}=Animated")
                     break
         if not live2d_sign:
-            template = template.replace(f"|动态{order}=\n", "")
+            template = template.replace(f"|动态{order}=", "")
 
         for obtain in skin_obtain_info:
             if obtain['id'] == skin["id"]:
@@ -105,7 +115,6 @@ def text_creation(class_id, time, coll_list, origin_text, theme_type):
     if order <= 12:
         template = template[:template.find(f"\n|编号{order}=")] + "}}"
 
-    template = template.replace("//n", "<br>").replace("//c", ",").replace("\"", "”")
     return template
 
 
@@ -140,14 +149,14 @@ def update():
         inClass = None
 
     content = text_creation('0', '20160520', special, origin_text, '0')
-    # write_wiki(session, URL, '特典装扮', content, '更新')
+    write_wiki(session, URL, '特典装扮', content, '更新')
     # print(content)
 
     for classes in class_info:
         if classes['id'] == '52':
             continue
-        if classes['id'] != '62':
-            continue
+        # if classes['id'] != '66':
+        #     continue
 
         class_name_tem = class_text[class_text.find(classes["name"]) + len(f"{classes['name']}") + 1:]
         class_name = class_name_tem[:class_name_tem.find("\n")]
@@ -183,6 +192,12 @@ def search_string(origin_text, tar):
         else:
             out_text = f"|{obtain_1[:obtain_1.find('|')]}"
 
+    return out_text
+
+
+def stc_to_text(text, name):
+    tem = text[text.find(name) + len(name) + 1:]
+    out_text = tem[:tem.find("\n")]
     return out_text
 
 

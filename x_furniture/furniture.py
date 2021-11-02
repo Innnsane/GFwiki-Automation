@@ -71,6 +71,13 @@ def furniture_write():
 
         if origin_text.find("|套装特效缩放大小=") != -1:
             page = page.replace(f"|套装特效缩放大小=1\n", search_string(origin_text, '套装特效缩放大小'))
+        else:
+            page = page.replace(f"|套装特效缩放大小=1\n", "")
+
+        if origin_text.find("|套装特效上下偏移=") != -1:
+            page = page.replace(f"|套装特效上下偏移=1\n", search_string(origin_text, '套装特效上下偏移'))
+        else:
+            page = page.replace(f"|套装特效上下偏移=1\n", "")
 
         des_text_tem = furniture_class_text[furniture_class_text.find(furniture_class["description"]) + len(furniture_class["description"]) + 1:]
         des_text = des_text_tem[:des_text_tem.find("\n")].replace("//n", "<br>").replace("//c", "，")
