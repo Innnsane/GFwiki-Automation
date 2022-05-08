@@ -1,3 +1,4 @@
+# %%
 import os
 import ujson
 import shutil
@@ -31,7 +32,7 @@ def find_alpha_info():
                 env = UnityPy.load(file_path)
 
                 for obj in env.objects:
-                    if obj.type == "MonoBehaviour":
+                    if obj.type == UnityPy.enums.ClassIDType.MonoBehaviour:
                         data = obj.read()
 
                         type_tree = data.read_typetree()
@@ -60,6 +61,7 @@ def find_alpha_info():
 
 
 def alpha_handle(path_array, file_name):
+    print(file_name)
     for img in path_array:
         if str(img["TextureFormat"]).endswith('Alpha8'):
             continue
@@ -89,7 +91,7 @@ def alpha_handle(path_array, file_name):
         for img_alpha in path_array:
             if img_alpha["path_id"] == alpha_path_id:
                 output = alpha_merge(img_alpha["img"], img["img"])
-                output.save(os.path.join(DESTINATION, file_name, f'{img["name"]}.png'))
+                output.save(os.path.join(file_name, f'{img["name"]}.png'))
     return
 
 
@@ -132,14 +134,14 @@ def unpack_all_assets():
                 dorm_name = dorm_name[:3]
 
                 for obj in env.objects:
-                    if obj.type == "Sprite" or obj.type == "MonoBehaviour" or obj.type == "Shader":
+                    if obj.type == UnityPy.enums.ClassIDType.Sprite or obj.type == UnityPy.enums.ClassIDType.MonoBehaviour or obj.type == UnityPy.enums.ClassIDType.Shader:
                         continue
 
                     data = obj.read()
                     export = None
                     spine_file_name = data.name
 
-                    if obj.type == "Texture2D":
+                    if obj.type == UnityPy.enums.ClassIDType.Texture2D:
                         if dorm_name == "" or data.name.startswith(dorm_name[1:]):
                             spine_file_name = data.name + "_chibi_spritemap.png"
                         elif data.name.startswith(dorm_name):
@@ -148,14 +150,14 @@ def unpack_all_assets():
                             spine_file_name = data.name + ".png"
                         data.image.save(os.path.join(file_destination_folder, spine_file_name))
 
-                    elif obj.type == "TextAsset" and data.name.endswith(".skel"):
+                    elif obj.type == UnityPy.enums.ClassIDType.TextAsset and data.name.endswith(".skel"):
                         if dorm_name == "" or data.name.startswith(dorm_name[1:]):
                             spine_file_name = data.name.replace(".skel", "_chibi_skel.skel")
                         elif data.name.startswith(dorm_name):
                             spine_file_name = data.name[1:].replace(".skel", "_chibi_dorm_skel.skel")
                         export = data.script
 
-                    elif obj.type == "TextAsset" and data.name.endswith(".atlas"):
+                    elif obj.type == UnityPy.enums.ClassIDType.TextAsset and data.name.endswith(".atlas"):
                         if dorm_name == "" or data.name.startswith(dorm_name[1:]):
                             spine_file_name = data.name.replace(".atlas", "_chibi_atlas.txt")
                         elif data.name.startswith(dorm_name):
@@ -173,11 +175,11 @@ def unpack_all_assets():
             for obj in env.objects:
                 data = obj.read()
 
-                if obj.type == "TextAsset":
+                if obj.type == UnityPy.enums.ClassIDType.TextAsset:
                     with open(os.path.join(file_destination_folder, f"{data.name}.txt"), "wb") as f:
                         f.write(data.script)
 
-                if obj.type == "Sprite":
+                if obj.type == UnityPy.enums.ClassIDType.Sprite:
                     sprite_path_id = obj.path_id
                     texture2d_path_id = data.m_RD.texture.path_id
                     sprite2tex_path_array.append({"sprite": sprite_path_id,
@@ -186,7 +188,7 @@ def unpack_all_assets():
             # Texture2D (after Sprite)
             path_array = []
             for obj in env.objects:
-                if obj.type == "Texture2D":
+                if obj.type == UnityPy.enums.ClassIDType.Texture2D:
                     pic = obj.read()
 
                     link_path_id = 0
@@ -254,8 +256,10 @@ def compare_and_save():
                 shutil.copyfile(os.path.join(DESTINATION, file_name, f), os.path.join(target, file_name, f))
             print("new folder", f'{file_name}')
 
-
+# %%
 delete_before()
 find_alpha_info()
 unpack_all_assets()
 compare_and_save()
+
+# %%
