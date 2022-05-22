@@ -1,0 +1,33 @@
+{
+  us: {
+    game_host: 'http://gf-game.sunborngame.com/index.php/1001',
+    cdn_host: 'http://gfus-cdn.sunborngame.com',
+    asset_host: 'http://gfus-cdn.sunborngame.com',
+    dump_version: 20800
+  },
+  jp: {
+    game_host: 'http://gfjp-game.sunborngame.com/index.php/1001',
+    cdn_host: 'http://gfjp-cdn.sunborngame.com',
+    asset_host: 'http://gfjp-cdn.sunborngame.com',
+    dump_version: 20800
+  },
+  kr: {
+    game_host: 'http://gf-game.girlfrontline.co.kr/index.php/1001',
+    cdn_host: 'http://gfkrcdn.imtxwy.com',
+    asset_host: 'http://sn-list.girlfrontline.co.kr',
+    dump_version: 20900
+  },
+  tw: {
+    game_host: 'http://sn-game.txwy.tw/index.php/1001',
+    cdn_host: 'http://sncdn.imtxwy.com',
+    asset_host: 'http://sn-list.txwy.tw',
+    dump_version: 20900
+  },
+  cn: {
+    game_host: 'http://gfcn-game.gw.merge.sunborngame.com/index.php/1000',
+    cdn_host: 'http://gf-cn.cdn.sunborngame.com/',
+    asset_host: 'http://gf-cn.cdn.sunborngame.com/',
+    dump_version: 20900
+  },
+  
+}
