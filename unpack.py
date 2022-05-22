@@ -1,3 +1,4 @@
+# %%
 import os
 import ujson
 import shutil
@@ -7,20 +8,30 @@ import datetime
 from PIL import Image
 from datetime import *
 from shutil import copyfile
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('region',choices=['cn','tw','kr','jp','en'])
+args = parser.parse_args()
+region = args.region
 
-SOURCE = ".\\assets"
-PREFABS = ".\\prefabs"
-DESTINATION = ".\\extracted"
-SAVED = ".\\extracted_save"
-UPDATE = ".\\extracted_up"
+SOURCE = f"Asset_raw/{region}"
+PREFABS = f"prefabs/{region}"
+DESTINATION = f"extracted/{region}"
+SAVED = f"extracted_save/{region}"
+UPDATE = f"extracted_up/{region}"
+os.makedirs(SOURCE,exist_ok=True)
+os.makedirs(PREFABS,exist_ok=True)
+os.makedirs(DESTINATION,exist_ok=True)
+os.makedirs(SAVED,exist_ok=True)
+os.makedirs(UPDATE,exist_ok=True)
 
 
 def find_alpha_info():
     for root, dirs, files in os.walk(SOURCE):
         for file in files:
             if file.find("prefab") != -1:
-                shutil.move(os.path.join(SOURCE, file), os.path.join(PREFABS, file))
+                shutil.copy(os.path.join(root, file), os.path.join(PREFABS, file))
 
     data_json = []
     for root, dirs, files in os.walk(PREFABS):
@@ -31,7 +42,7 @@ def find_alpha_info():
                 env = UnityPy.load(file_path)
 
                 for obj in env.objects:
-                    if obj.type == "MonoBehaviour":
+                    if obj.type.name == "MonoBehaviour":
                         data = obj.read()
 
                         type_tree = data.read_typetree()
@@ -58,7 +69,7 @@ def find_alpha_info():
         f.write(ujson.dumps(data_json))
         f.close()
 
-
+# %%
 def alpha_handle(path_array, file_name):
     for img in path_array:
         if str(img["TextureFormat"]).endswith('Alpha8'):
@@ -80,19 +91,19 @@ def alpha_handle(path_array, file_name):
                 if f'{img["name"]}_Alpha' == alpha["name"]:
                     alpha_path_id = alpha["path_id"]
                     output = alpha_merge(alpha["img"], img["img"])
-                    output.save(os.path.join(DESTINATION, file_name, f'{img["name"]}.png'))
+                    output.save(os.path.join(file_name, f'{img["name"]}.png'))
                     break
             if not alpha_path_id:
-                img["img"].save(os.path.join(DESTINATION, file_name, f'{img["name"]}.png'))
+                img["img"].save(os.path.join(file_name, f'{img["name"]}.png'))
             continue
 
         for img_alpha in path_array:
             if img_alpha["path_id"] == alpha_path_id:
                 output = alpha_merge(img_alpha["img"], img["img"])
-                output.save(os.path.join(DESTINATION, file_name, f'{img["name"]}.png'))
+                output.save(os.path.join(file_name, f'{img["name"]}.png'))
     return
 
-
+# %%
 def alpha_merge(alpha, base):
     r, g, b = base.split()[0:3]
     if alpha.width != base.width:
@@ -124,6 +135,8 @@ def unpack_all_assets():
                 dorm_name = ""
                 for obj in env.objects:
                     data = obj.read()
+                    if 'name' not in dir(data):
+                        continue
                     if data.name.endswith(".skel"):
                         if not dorm_name and data.name[:1] == "R":
                             dorm_name = data.name
@@ -132,14 +145,16 @@ def unpack_all_assets():
                 dorm_name = dorm_name[:3]
 
                 for obj in env.objects:
-                    if obj.type == "Sprite" or obj.type == "MonoBehaviour" or obj.type == "Shader":
+                    if obj.type.name in ['Sprite','MonoBehaviour','Shader']:
                         continue
 
                     data = obj.read()
+                    if 'name' not in dir(data):
+                        continue
                     export = None
                     spine_file_name = data.name
 
-                    if obj.type == "Texture2D":
+                    if obj.type.name == 'Texture2D':
                         if dorm_name == "" or data.name.startswith(dorm_name[1:]):
                             spine_file_name = data.name + "_chibi_spritemap.png"
                         elif data.name.startswith(dorm_name):
@@ -148,14 +163,14 @@ def unpack_all_assets():
                             spine_file_name = data.name + ".png"
                         data.image.save(os.path.join(file_destination_folder, spine_file_name))
 
-                    elif obj.type == "TextAsset" and data.name.endswith(".skel"):
+                    elif obj.type.name == 'TextAsset' and data.name.endswith(".skel"):
                         if dorm_name == "" or data.name.startswith(dorm_name[1:]):
                             spine_file_name = data.name.replace(".skel", "_chibi_skel.skel")
                         elif data.name.startswith(dorm_name):
                             spine_file_name = data.name[1:].replace(".skel", "_chibi_dorm_skel.skel")
                         export = data.script
 
-                    elif obj.type == "TextAsset" and data.name.endswith(".atlas"):
+                    elif obj.type.name == 'TextAsset' and data.name.endswith(".atlas"):
                         if dorm_name == "" or data.name.startswith(dorm_name[1:]):
                             spine_file_name = data.name.replace(".atlas", "_chibi_atlas.txt")
                         elif data.name.startswith(dorm_name):
@@ -171,13 +186,16 @@ def unpack_all_assets():
             # Sprite(not unpack) and TextAsset
             sprite2tex_path_array = []
             for obj in env.objects:
+                
                 data = obj.read()
+                if 'name' not in dir(data):
+                    continue
 
-                if obj.type == "TextAsset":
+                if obj.type.name == 'TextAsset':
                     with open(os.path.join(file_destination_folder, f"{data.name}.txt"), "wb") as f:
                         f.write(data.script)
 
-                if obj.type == "Sprite":
+                if obj.type.name == 'Sprite':
                     sprite_path_id = obj.path_id
                     texture2d_path_id = data.m_RD.texture.path_id
                     sprite2tex_path_array.append({"sprite": sprite_path_id,
@@ -186,9 +204,10 @@ def unpack_all_assets():
             # Texture2D (after Sprite)
             path_array = []
             for obj in env.objects:
-                if obj.type == "Texture2D":
+                if obj.type.name == 'Texture2D':
                     pic = obj.read()
-
+                    if pic.name == 'Font Texture':
+                        continue
                     link_path_id = 0
                     for link in sprite2tex_path_array:
                         if obj.path_id == link["texture2d"]:
@@ -208,14 +227,16 @@ def unpack_all_assets():
 
 
 def delete_before():
-    for file_a in os.listdir(DESTINATION):
-        for file_b in os.listdir(os.path.join(DESTINATION, file_a)):
-            os.remove(os.path.join(DESTINATION, file_a, file_b))
-        os.rmdir(os.path.join(DESTINATION, file_a))
+    shutil.rmtree(DESTINATION)
+    os.mkdir(DESTINATION)
 
+def remove_empty():
+    for dir in os.listdir(DESTINATION):
+        if len(os.listdir(os.path.join(DESTINATION,dir))) == 0:
+            shutil.rmtree(os.path.join(DESTINATION,dir))
 
 def compare_and_save():
-    target = os.path.join(UPDATE, datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+    target = os.path.join(UPDATE, datetime.now().strftime(r"%Y-%m-%d-%H-%M-%S"))
     os.makedirs(target)
 
     for file_name in os.listdir(DESTINATION):
@@ -254,8 +275,12 @@ def compare_and_save():
                 shutil.copyfile(os.path.join(DESTINATION, file_name, f), os.path.join(target, file_name, f))
             print("new folder", f'{file_name}')
 
-
+# %%
 delete_before()
 find_alpha_info()
 unpack_all_assets()
+remove_empty()
 compare_and_save()
+
+
+# %%
